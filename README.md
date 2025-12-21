@@ -1,27 +1,98 @@
-<!-- These are examples of badges you might want to add to your README:
-     please update the URLs accordingly
+# RAG Comparison Project
 
-[![Built Status](https://api.cirrus-ci.com/github/<USER>/RAG_Comparision.svg?branch=main)](https://cirrus-ci.com/github/<USER>/RAG_Comparision)
-[![ReadTheDocs](https://readthedocs.org/projects/RAG_Comparision/badge/?version=latest)](https://RAG_Comparision.readthedocs.io/en/stable/)
-[![Coveralls](https://img.shields.io/coveralls/github/<USER>/RAG_Comparision/main.svg)](https://coveralls.io/r/<USER>/RAG_Comparision)
-[![PyPI-Server](https://img.shields.io/pypi/v/RAG_Comparision.svg)](https://pypi.org/project/RAG_Comparision/)
-[![Conda-Forge](https://img.shields.io/conda/vn/conda-forge/RAG_Comparision.svg)](https://anaconda.org/conda-forge/RAG_Comparision)
-[![Monthly Downloads](https://pepy.tech/badge/RAG_Comparision/month)](https://pepy.tech/project/RAG_Comparision)
-[![Twitter](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Twitter)](https://twitter.com/RAG_Comparision)
--->
+Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and Quality Improvements over Standard RAG Systems
 
-[![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
+## Project Overview
 
-# RAG_Comparision
+This dissertation research project compares standard RAG (Retrieval-Augmented Generation) systems with graph-based RAG approaches, focusing on multi-hop question answering performance using datasets like HotpotQA.
 
-> Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and Quality Improvements over Standard RAG Systems
+## Features
 
-A longer description of your project goes here...
+- **Standard RAG**: Vector-based retrieval using ChromaDB/FAISS
+- **Graph-Based RAG**: Knowledge graph enhanced retrieval using Neo4j
+- **Comprehensive Evaluation**: RAGAS metrics and multi-hop QA datasets
+- **Web Interface**: FastAPI-based web application with Fomantic UI
 
+## Installation
 
-<!-- pyscaffold-notes -->
+### Prerequisites
 
-## Note
+- Python 3.11 or higher
+- pip or uv package manager
 
-This project has been set up using PyScaffold 4.6. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+### Setup
+
+1. Install dependencies:
+
+```bash
+pip install -e .
+```
+
+Or using uv:
+
+```bash
+uv pip install -e .
+```
+
+2. Run the FastAPI application:
+
+```bash
+uvicorn src.rag_comparision.main:app --reload
+```
+
+The application will be available at `http://localhost:8000`
+
+## Project Structure
+
+```
+RAG_Comparision/
+├── src/
+│   └── rag_comparision/          # Main package
+│       ├── __init__.py           # Package initialization
+│       ├── main.py               # FastAPI application entry point
+│       ├── config.py             # Application configuration
+│       ├── api/                  # API routes
+│       │   └── __init__.py
+│       ├── templates/            # HTML templates
+│       │   └── index.html        # Main page template
+│       └── static/               # Static files (CSS, JS, images)
+├── pyproject.toml                # Project configuration
+└── README.md                     # This file
+```
+
+## API Endpoints
+
+- `GET /` - Main web interface
+- `GET /health` - Health check endpoint
+- `GET /api/v1/` - API root endpoint
+
+## Technology Stack
+
+- **Framework**: FastAPI
+- **UI**: Fomantic UI (Semantic UI fork)
+- **RAG Framework**: LangChain
+- **Vector Stores**: ChromaDB, FAISS
+- **Graph Database**: Neo4j
+- **Evaluation**: RAGAS
+
+## Development
+
+### Running in Development Mode
+
+```bash
+uvicorn src.rag_comparision.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Running Tests
+
+```bash
+pytest
+```
+
+## License
+
+MIT
+
+## Author
+
+shubhra2 (shubhra.gadhwala@gmail.com)

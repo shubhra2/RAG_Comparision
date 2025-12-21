@@ -52,3 +52,13 @@ MANIFEST
 .venv*/
 .conda*/
 .python-version
+
+# config files
+.env
+
+# cursor files
+.cursorrules
+.cursor/
+
+# uv files
+uv.lock
