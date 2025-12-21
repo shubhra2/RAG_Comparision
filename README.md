@@ -4,7 +4,7 @@ Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and 
 
 ## Project Overview
 
-This dissertation research project compares standard RAG (Retrieval-Augmented Generation) systems with graph-based RAG approaches, focusing on multi-hop question answering performance using datasets like HotpotQA.
+This dissertation research project compares standard RAG (Retrieval-Augmented Generation) systems with graph-based RAG approaches, focusing on knowledge graph construction and multi-hop reasoning using a synthetic research articles dataset.
 
 ## Features
 
