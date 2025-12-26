@@ -41,6 +41,25 @@ from rag_comparision.core.ollama import OllamaClient, OllamaStreamChunk
 from rag_comparision.core.vector_store import ChromaVectorStore, VectorStoreInterface
 
 
+class ChromaDBEmptyError(Exception):
+    """Raised when ChromaDB is empty and data needs to be loaded."""
+
+    def __init__(
+        self,
+        message: str = 'ChromaDB is empty. Please load data first using load_data().',
+        persist_directory: str | Path | None = None,
+    ):
+        """Initialize the error.
+
+        Args:
+            message: Error message
+            persist_directory: Path to ChromaDB directory if available
+        """
+        self.message = message
+        self.persist_directory = persist_directory
+        super().__init__(self.message)
+
+
 class RAGResponse:
     """Response from RAG system."""
 
@@ -165,6 +184,29 @@ class StandardRAG(RAGSystem):
         self._prompt_template: PromptTemplate | None = None
         self._data_loaded = False
 
+        # Check if ChromaDB is empty (but don't auto-load)
+        self._check_chromadb_status()
+
+    def _check_chromadb_status(self) -> None:
+        """Check if ChromaDB has data and set up retrieval chain if available.
+
+        Raises:
+            ChromaDBEmptyError: If ChromaDB is empty
+        """
+        try:
+            doc_count = self.vector_store.count()
+            if doc_count > 0:
+                # Data exists, set up the retrieval chain
+                self._setup_retrieval_chain()
+                self._data_loaded = True
+            else:
+                # ChromaDB is empty - don't raise error here, just mark as not loaded
+                # Error will be raised when query is attempted
+                self._data_loaded = False
+        except Exception:
+            # If count() fails, assume empty
+            self._data_loaded = False
+
     def load_data(
         self,
         source: str | Path | None = None,
@@ -251,10 +293,33 @@ class StandardRAG(RAGSystem):
 
         Returns:
             RAGResponse with answer and metadata
+
+        Raises:
+            ChromaDBEmptyError: If ChromaDB is empty and data hasn't been loaded
         """
+        # Check if data is loaded
         if not self._data_loaded:
-            # Auto-load data if not loaded
-            self.load_data()
+            # Re-check ChromaDB status in case it was populated externally
+            try:
+                doc_count = self.vector_store.count()
+                if doc_count == 0:
+                    raise ChromaDBEmptyError(
+                        'ChromaDB is empty. Please load data first using load_data(). '
+                        'You can load data from the Dataset Preview page.',
+                        persist_directory=self.persist_directory,
+                    )
+                # Data exists, set up retrieval chain
+                self._setup_retrieval_chain()
+                self._data_loaded = True
+            except ChromaDBEmptyError:
+                raise
+            except Exception as e:
+                # If count() fails, assume empty
+                raise ChromaDBEmptyError(
+                    f'ChromaDB is empty or inaccessible. Error: {str(e)}. '
+                    'Please load data first using load_data().',
+                    persist_directory=self.persist_directory,
+                ) from e
 
         # Retrieve relevant documents with scores
         try:
@@ -355,10 +420,33 @@ class StandardRAG(RAGSystem):
         Yields:
             Tuples of (OllamaStreamChunk, metadata_dict) where metadata contains
             retrieval information that remains constant across chunks
+
+        Raises:
+            ChromaDBEmptyError: If ChromaDB is empty and data hasn't been loaded
         """
+        # Check if data is loaded
         if not self._data_loaded:
-            # Auto-load data if not loaded
-            self.load_data()
+            # Re-check ChromaDB status in case it was populated externally
+            try:
+                doc_count = self.vector_store.count()
+                if doc_count == 0:
+                    raise ChromaDBEmptyError(
+                        'ChromaDB is empty. Please load data first using load_data(). '
+                        'You can load data from the Dataset Preview page.',
+                        persist_directory=self.persist_directory,
+                    )
+                # Data exists, set up retrieval chain
+                self._setup_retrieval_chain()
+                self._data_loaded = True
+            except ChromaDBEmptyError:
+                raise
+            except Exception as e:
+                # If count() fails, assume empty
+                raise ChromaDBEmptyError(
+                    f'ChromaDB is empty or inaccessible. Error: {str(e)}. '
+                    'Please load data first using load_data().',
+                    persist_directory=self.persist_directory,
+                ) from e
 
         # Retrieve relevant documents with scores
         try:

@@ -11,11 +11,6 @@ package "User Interface Layer" {
   component [Ollama Test] as OllamaTest
 }
 
-package "API Layer" {
-  component [FastAPI Backend] as API
-  component [API Router] as Router
-  component [Health Check] as Health
-}
 
 package "RAG System Layer" {
   component [Standard RAG] as StandardRAG
@@ -45,14 +40,9 @@ package "Data Layer" {
 }
 
 ' User Interface connections
-Dashboard --> API
-Chat --> API
+Dashboard --> RAGInterface
+Chat --> RAGInterface
 OllamaTest --> OllamaClient
-
-' API connections
-API --> Router
-API --> Health
-Router --> RAGInterface
 
 ' RAG System connections
 RAGInterface --> StandardRAG

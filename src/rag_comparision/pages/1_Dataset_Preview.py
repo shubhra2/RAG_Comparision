@@ -7,11 +7,17 @@ try:
 except ImportError:
     pd = None
 
-from rag_comparision.config import PROCESSED_DATA_PATH
+from rag_comparision.config import (
+    DEFAULT_PERSIST_DIRECTORY,
+    PROCESSED_DATA_PATH,
+)
 from rag_comparision.core.data_preprocessing import (
     preprocess_synthetic_articles_dataset,
 )
+from rag_comparision.core.embeddings import get_default_embedding_model
+from rag_comparision.core.rag import StandardRAG
 from rag_comparision.core.sidebar import render_sidebar
+from rag_comparision.core.vector_store import ChromaVectorStore
 
 # Render shared sidebar
 render_sidebar()
@@ -69,5 +75,79 @@ if df is not None and not df.empty:
         st.write('**Columns:**', ', '.join(df.columns.tolist()))
         st.write('**Data Types:**')
         st.write(df.dtypes)
+
+    st.markdown('---')
+
+    # ChromaDB Status Section
+    st.subheader(' ChromaDB Status')
+
+    # Get persist directory from session state or use default
+    persist_directory = st.session_state.get(
+        'persist_directory', DEFAULT_PERSIST_DIRECTORY
+    )
+
+    # Check ChromaDB status
+    try:
+        embeddings = get_default_embedding_model()
+        vector_store = ChromaVectorStore(
+            embeddings=embeddings,
+            persist_directory=persist_directory if persist_directory else None,
+        )
+
+        doc_count = vector_store.count()
+
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            if doc_count > 0:
+                st.success(f' ChromaDB contains **{doc_count}** documents.')
+            else:
+                st.warning('️ ChromaDB is **empty**. Load data to enable RAG queries.')
+        with col2:
+            if doc_count == 0:
+                if st.button(' Load Data into ChromaDB', type='primary'):
+                    with st.spinner(
+                        'Loading data into ChromaDB... This may take a few minutes.'
+                    ):
+                        try:
+                            # Initialize RAG system and load data
+                            rag = StandardRAG(
+                                persist_directory=persist_directory
+                                if persist_directory
+                                else None,
+                            )
+                            rag.load_data(force_reload=False)
+                            st.success(' Successfully loaded data into ChromaDB!')
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f' **Error loading data:**\n\n`{str(e)}`')
+            else:
+                if st.button(' Reload Data', type='secondary'):
+                    with st.spinner(
+                        'Reloading data into ChromaDB... This may take a few minutes.'
+                    ):
+                        try:
+                            # Initialize RAG system and reload data
+                            rag = StandardRAG(
+                                persist_directory=persist_directory
+                                if persist_directory
+                                else None,
+                            )
+                            rag.load_data(force_reload=True)
+                            st.success(' Successfully reloaded data into ChromaDB!')
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f' **Error reloading data:**\n\n`{str(e)}`')
+
+        # Show ChromaDB path
+        if persist_directory:
+            st.caption(f'ChromaDB location: `{persist_directory}`')
+        else:
+            st.caption('ChromaDB: In-memory (not persisted)')
+
+    except Exception as e:
+        st.error(f' **Error checking ChromaDB status:**\n\n`{str(e)}`')
+        st.info(
+            'You may need to install required packages: `pip install chromadb langchain-chroma`'
+        )
 else:
     st.warning('️ No data available to display.')

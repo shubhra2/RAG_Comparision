@@ -12,8 +12,6 @@ class Settings(BaseSettings):
     app_name: str = 'RAG Comparison Project'
     app_version: str = '0.1.0'
     debug: bool = False
-    host: str = '0.0.0.0'
-    port: int = 8000
 
     # Ollama/LLM Configuration
     ollama_base_url: str = 'http://localhost:11434'
@@ -67,8 +65,6 @@ settings = Settings()
 APP_NAME = settings.app_name
 APP_VERSION = settings.app_version
 DEBUG = settings.debug
-HOST = settings.host
-PORT = settings.port
 
 # Ollama/LLM
 OLLAMA_BASE_URL = settings.ollama_base_url

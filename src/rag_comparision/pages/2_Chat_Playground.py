@@ -11,6 +11,7 @@ from rag_comparision.config import (
     RAG_TYPE_STANDARD,
 )
 from rag_comparision.core import StandardRAG
+from rag_comparision.core.rag import ChromaDBEmptyError
 from rag_comparision.core.sidebar import render_sidebar
 
 
@@ -123,9 +124,23 @@ if rag_key not in st.session_state:
                 ollama_base_url=ollama_base_url,
                 k_retrieval=k_retrieval,
             )
-            # Load data on first initialization
-            st.session_state[rag_key].load_data()
-            st.success(' RAG system initialized and data loaded!')
+            # Check if ChromaDB has data
+            try:
+                doc_count = st.session_state[rag_key].vector_store.count()
+                if doc_count > 0:
+                    st.success(
+                        f' RAG system initialized! ChromaDB contains {doc_count} documents.'
+                    )
+                else:
+                    st.warning(
+                        '️ **ChromaDB is empty.** Please load data from the Dataset Preview page '
+                        'before querying the RAG system.'
+                    )
+            except Exception as e:
+                st.warning(
+                    f'️ **Could not check ChromaDB status:** {str(e)}\n\n'
+                    'Please ensure ChromaDB is accessible or load data from the Dataset Preview page.'
+                )
         except Exception as e:
             st.error(f' **Error initializing RAG system:**\n\n`{str(e)}`')
             st.session_state[rag_key] = None
@@ -142,9 +157,23 @@ else:
                     ollama_base_url=ollama_base_url,
                     k_retrieval=k_retrieval,
                 )
-                # Load data on reinitialization
-                st.session_state[rag_key].load_data()
-                st.success(' RAG system reinitialized!')
+                # Check if ChromaDB has data
+                try:
+                    doc_count = st.session_state[rag_key].vector_store.count()
+                    if doc_count > 0:
+                        st.success(
+                            f' RAG system reinitialized! ChromaDB contains {doc_count} documents.'
+                        )
+                    else:
+                        st.warning(
+                            '️ **ChromaDB is empty.** Please load data from the Dataset Preview page '
+                            'before querying the RAG system.'
+                        )
+                except Exception as e:
+                    st.warning(
+                        f'️ **Could not check ChromaDB status:** {str(e)}\n\n'
+                        'Please ensure ChromaDB is accessible or load data from the Dataset Preview page.'
+                    )
             except Exception as e:
                 st.error(f' **Error reinitializing RAG system:**\n\n`{str(e)}`')
                 st.session_state[rag_key] = None
@@ -225,10 +254,15 @@ if prompt := st.chat_input('Ask a question about the knowledge base...'):
                 content_placeholder = st.empty()
 
                 # Stream chunks
-                for chunk, _ in rag_system.query_stream(
+                retrieval_metadata = {}
+                for chunk, chunk_metadata in rag_system.query_stream(
                     prompt,
                     reasoning=enable_reasoning if enable_reasoning else None,
                 ):
+                    # Capture retrieval metadata from first chunk (constant across all chunks)
+                    if not retrieval_metadata and chunk_metadata:
+                        retrieval_metadata = chunk_metadata
+
                     # Handle reasoning content first
                     if (
                         chunk.reasoning_content
@@ -258,7 +292,6 @@ if prompt := st.chat_input('Ask a question about the knowledge base...'):
                         response_metadata = chunk.response_metadata
 
                 # Use retrieval metadata (constant across chunks)
-                retrieval_metadata = metadata
                 retrieved_docs = retrieval_metadata.get('retrieved_documents', 0)
                 confidence = retrieval_metadata.get('confidence', 0.0)
 
@@ -349,6 +382,19 @@ if prompt := st.chat_input('Ask a question about the knowledge base...'):
                             'metadata': metadata,
                         }
                     )
+        except ChromaDBEmptyError as e:
+            error_msg = (
+                f'️ **ChromaDB is empty.**\n\n'
+                f'{str(e)}\n\n'
+                'Please go to the **Dataset Preview** page to load data into ChromaDB.'
+            )
+            st.error(error_msg)
+            st.session_state.messages.append(
+                {
+                    'role': 'assistant',
+                    'content': error_msg,
+                }
+            )
         except Exception as e:
             error_msg = f' **Error:** {str(e)}'
             st.error(error_msg)
