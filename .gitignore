@@ -62,3 +62,7 @@ MANIFEST
 
 # uv files
 uv.lock
+
+# Processed data files
+data/processed/
+chroma_db/
