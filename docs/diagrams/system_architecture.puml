@@ -1,0 +1,81 @@
+@startuml System Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title RAG Comparison System - Architecture Overview
+
+package "User Interface Layer" {
+  component [Streamlit Dashboard] as Dashboard
+  component [Chat Playground] as Chat
+  component [Ollama Test] as OllamaTest
+}
+
+package "API Layer" {
+  component [FastAPI Backend] as API
+  component [API Router] as Router
+  component [Health Check] as Health
+}
+
+package "RAG System Layer" {
+  component [Standard RAG] as StandardRAG
+  component [Graph-Based RAG] as GraphRAG
+  component [RAG System Interface] as RAGInterface
+}
+
+package "Retrieval Components" {
+  component [Vector Store\n(ChromaDB/FAISS)] as VectorStore
+  component [Knowledge Graph\n(Neo4j)] as KnowledgeGraph
+  component [Embedding Model\n(Sentence Transformers)] as Embeddings
+}
+
+package "LLM Layer" {
+  component [Ollama Client] as OllamaClient
+  component [LLM Models\n(qwen3, gemma3, phi4)] as LLM
+}
+
+package "Evaluation Layer" {
+  component [RAGAS Metrics] as RAGAS
+  component [Evaluation Runner] as EvalRunner
+}
+
+package "Data Layer" {
+  database [Synthetic Articles Dataset] as Dataset
+  database [Documents] as Documents
+}
+
+' User Interface connections
+Dashboard --> API
+Chat --> API
+OllamaTest --> OllamaClient
+
+' API connections
+API --> Router
+API --> Health
+Router --> RAGInterface
+
+' RAG System connections
+RAGInterface --> StandardRAG
+RAGInterface --> GraphRAG
+StandardRAG --> VectorStore
+GraphRAG --> KnowledgeGraph
+StandardRAG --> Embeddings
+GraphRAG --> Embeddings
+
+' LLM connections
+StandardRAG --> OllamaClient
+GraphRAG --> OllamaClient
+OllamaClient --> LLM
+
+' Evaluation connections
+EvalRunner --> StandardRAG
+EvalRunner --> GraphRAG
+EvalRunner --> RAGAS
+EvalRunner --> Dataset
+
+' Data connections
+VectorStore --> Documents
+KnowledgeGraph --> Documents
+Dataset --> Documents
+
+@enduml

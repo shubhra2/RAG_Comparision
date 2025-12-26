@@ -1,0 +1,57 @@
+@startuml Evaluation Framework
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title RAG Evaluation Framework Flow
+
+package "Input" {
+  database [Synthetic Articles Dataset] as Dataset
+  component [Test Queries] as Queries
+  component [Ground Truth Answers] as GroundTruth
+}
+
+package "RAG Systems" {
+  component [Standard RAG] as StandardRAG
+  component [Graph-Based RAG] as GraphRAG
+}
+
+package "Evaluation Metrics" {
+  component [RAGAS Framework] as RAGAS
+  component [Faithfulness Metric] as Faithfulness
+  component [Answer Relevancy Metric] as Relevancy
+  component [Context Precision Metric] as Precision
+}
+
+package "Output" {
+  component [Comparison Report] as Report
+  component [Performance Charts] as Charts
+  component [Metric Scores] as Scores
+}
+
+' Input flow
+Dataset --> Queries
+Dataset --> GroundTruth
+
+' RAG execution
+Queries --> StandardRAG
+Queries --> GraphRAG
+StandardRAG --> RAGAS
+GraphRAG --> RAGAS
+
+' Metric calculation
+RAGAS --> Faithfulness
+RAGAS --> Relevancy
+RAGAS --> Precision
+
+' Output generation
+Faithfulness --> Scores
+Relevancy --> Scores
+Precision --> Scores
+Scores --> Report
+Scores --> Charts
+
+' Ground truth comparison
+GroundTruth --> RAGAS
+
+@enduml

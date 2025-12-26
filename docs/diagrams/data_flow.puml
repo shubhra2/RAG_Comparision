@@ -1,0 +1,22 @@
+@startuml
+title Knowledge Graph Construction Pipeline
+
+rectangle "Synthetic Articles Dataset" {
+  File : synthetic_articles.csv
+}
+
+rectangle "Preprocessing" {
+  File --> Cleaner : Text cleaning
+  Cleaner --> Chunker : Chunking
+}
+
+rectangle "Entity & Relation Extraction" {
+  Chunker --> NER : Entity extraction
+  NER --> RelationExtractor : Relationship extraction
+}
+
+rectangle "Graph Database (Neo4j)" {
+  RelationExtractor --> Neo4j : Create nodes & edges
+}
+
+@enduml
