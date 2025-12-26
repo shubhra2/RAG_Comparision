@@ -10,6 +10,8 @@ try:
 except ImportError:
     pd = None
 
+from rag_comparision.config import DATASET_URL, PROCESSED_DATA_PATH
+
 
 def clean_text(text: str | None) -> str:
     """Clean and normalize text.
@@ -22,10 +24,10 @@ def clean_text(text: str | None) -> str:
     """
     if text is None:
         return ''
-    
+
     if pd is not None and pd.isna(text):
         return ''
-    
+
     text = str(text).strip()
     # Remove extra whitespace
     text = ' '.join(text.split())
@@ -59,17 +61,12 @@ def preprocess_synthetic_articles_dataset(
         )
 
     # Default source URL from dataset info
-    default_url = (
-        'https://raw.githubusercontent.com/dcarpintero/ai-engineering/'
-        'main/dataset/synthetic_articles.csv'
-    )
-
     if source is None:
-        source = default_url
+        source = DATASET_URL
 
     # Set default output path
     if output_path is None:
-        output_path = Path('data/processed/synthetic_articles.parquet')
+        output_path = PROCESSED_DATA_PATH
     else:
         output_path = Path(output_path)
 
@@ -95,7 +92,7 @@ def preprocess_synthetic_articles_dataset(
     df = _clean_dataframe(df)
     print(f'After cleaning: {len(df)} records')
     print(f'Columns after cleaning: {list(df.columns)}')
-    
+
     # Debug: Show sample of cleaned data
     if len(df) > 0:
         print('\nSample of cleaned data (first row):')
@@ -117,6 +114,8 @@ def preprocess_synthetic_articles_dataset(
 def _load_csv_with_error_handling(source: str | Path) -> pd.DataFrame:
     """Load CSV file with error handling for malformed lines.
 
+    Automatically detects separator (semicolon or comma) by checking the first line.
+
     Args:
         source: File path or URL
 
@@ -126,18 +125,40 @@ def _load_csv_with_error_handling(source: str | Path) -> pd.DataFrame:
     Raises:
         ValueError: If CSV cannot be loaded
     """
-    def _read_csv_with_error_handling(file_or_buffer: Any) -> pd.DataFrame:
+
+    def _detect_separator(content: str) -> str:
+        """Detect CSV separator from content.
+
+        Args:
+            content: CSV content as string
+
+        Returns:
+            Detected separator (';' or ',')
+        """
+        first_line = content.split('\n')[0] if '\n' in content else content
+        # Count semicolons and commas in header
+        semicolon_count = first_line.count(';')
+        comma_count = first_line.count(',')
+        # Use semicolon if it appears more frequently, otherwise default to comma
+        return ';' if semicolon_count > comma_count else ','
+
+    def _read_csv_with_error_handling(
+        file_or_buffer: Any, sep: str = ','
+    ) -> pd.DataFrame:
         """Read CSV with error handling for malformed lines.
 
         Args:
             file_or_buffer: File path, URL response, or file-like object
+            sep: CSV separator (default: ',')
 
         Returns:
             DataFrame with loaded CSV data
         """
         # Try with pandas >= 1.3.0 parameter first (on_bad_lines)
         try:
-            return pd.read_csv(file_or_buffer, on_bad_lines='skip', encoding='utf-8')
+            return pd.read_csv(
+                file_or_buffer, sep=sep, on_bad_lines='skip', encoding='utf-8'
+            )
         except (TypeError, ValueError):
             # TypeError: parameter doesn't exist in this pandas version
             # ValueError: parameter value not accepted
@@ -145,33 +166,41 @@ def _load_csv_with_error_handling(source: str | Path) -> pd.DataFrame:
             try:
                 return pd.read_csv(
                     file_or_buffer,
+                    sep=sep,
                     error_bad_lines=False,
                     warn_bad_lines=False,
                     encoding='utf-8',
                 )
             except (TypeError, ValueError):
                 # Last resort: try without error handling parameters
-                return pd.read_csv(file_or_buffer, encoding='utf-8')
+                return pd.read_csv(file_or_buffer, sep=sep, encoding='utf-8')
 
     try:
+        # Get content to detect separator
         if isinstance(source, (str, Path)) and Path(source).exists():
             # Local file
-            return _read_csv_with_error_handling(source)
+            with open(source, encoding='utf-8') as f:
+                content = f.read()
+            sep = _detect_separator(content)
+            return _read_csv_with_error_handling(io.StringIO(content), sep=sep)
         elif isinstance(source, str) and source.startswith('http'):
             # URL
             response = urlopen(source)
-            return _read_csv_with_error_handling(
-                io.StringIO(response.read().decode('utf-8'))
-            )
+            content = response.read().decode('utf-8')
+            sep = _detect_separator(content)
+            return _read_csv_with_error_handling(io.StringIO(content), sep=sep)
         else:
             # Try as local path first, then URL
             try:
-                return _read_csv_with_error_handling(source)
+                with open(source, encoding='utf-8') as f:
+                    content = f.read()
+                sep = _detect_separator(content)
+                return _read_csv_with_error_handling(io.StringIO(content), sep=sep)
             except Exception:
                 response = urlopen(source)
-                return _read_csv_with_error_handling(
-                    io.StringIO(response.read().decode('utf-8'))
-                )
+                content = response.read().decode('utf-8')
+                sep = _detect_separator(content)
+                return _read_csv_with_error_handling(io.StringIO(content), sep=sep)
     except Exception as e:
         raise ValueError(f'Failed to load CSV from {source}: {str(e)}') from e
 
@@ -190,7 +219,35 @@ def _clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     # Standardize column names (handle case variations)
     df.columns = df.columns.str.strip()
-    
+
+    # Fix malformed parquet files where all columns were merged into one
+    # Check if we have a single column with semicolon-separated column names
+    if len(df.columns) == 1:
+        col_name = df.columns[0]
+        # Check if column name contains semicolons (indicating merged columns)
+        if ';' in col_name:
+            expected_columns = [
+                'Title',
+                'Abstract',
+                'Topic',
+                'Subtopic',
+                'Authors',
+                'Publication_Date',
+            ]
+            # Check if the column name matches expected pattern
+            if all(col in col_name for col in expected_columns):
+                # Split the single column into multiple columns
+                print(f'Detected malformed parquet file with merged column: {col_name}')
+                print('Splitting column into individual fields...')
+                # Split each row value by semicolon
+                split_data = df[col_name].str.split(
+                    ';', expand=True, n=len(expected_columns) - 1
+                )
+                # Set proper column names
+                split_data.columns = expected_columns
+                df = split_data
+                print(f'Successfully split into columns: {list(df.columns)}')
+
     # Clean text columns
     text_columns = ['Title', 'Abstract', 'Topic', 'Subtopic', 'Authors']
     for col in text_columns:
@@ -208,7 +265,7 @@ def _clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # Remove rows where all key text fields are empty
     key_fields = ['Title', 'Abstract']
     available_key_fields = [f for f in key_fields if f in df.columns]
-    
+
     if available_key_fields:
         # Keep rows where at least one key field has content
         mask = df[available_key_fields].apply(
@@ -260,19 +317,16 @@ def validate_preprocessed_data(df: pd.DataFrame) -> dict[str, Any]:
         if field not in df.columns:
             results['warnings'].append(f'Missing required field: {field}')
         else:
-            missing_count = df[field].isna().sum() + (
-                df[field].astype(str).str.strip() == ''
-            ).sum()
+            missing_count = (
+                df[field].isna().sum() + (df[field].astype(str).str.strip() == '').sum()
+            )
             results['missing_fields'][field] = missing_count
 
     # Count valid rows (have at least Title or Abstract)
     if 'Title' in df.columns and 'Abstract' in df.columns:
         valid_mask = (
             df['Title'].notna() & (df['Title'].astype(str).str.strip() != '')
-        ) | (
-            df['Abstract'].notna() & (df['Abstract'].astype(str).str.strip() != '')
-        )
+        ) | (df['Abstract'].notna() & (df['Abstract'].astype(str).str.strip() != ''))
         results['valid_rows'] = valid_mask.sum()
 
     return results
-

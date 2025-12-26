@@ -1,10 +1,9 @@
 """RAG system core logic."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
@@ -23,9 +22,22 @@ except ImportError:
     LLM = None
     PromptTemplate = None
 
+from rag_comparision.config import (
+    CONFIDENCE_MAX,
+    CONFIDENCE_MIN,
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
+    DEFAULT_CONFIDENCE,
+    DEFAULT_K_RETRIEVAL,
+    DEFAULT_MODEL_FALLBACK,
+    OLLAMA_BASE_URL,
+    RAG_PROMPT_SIMPLE,
+    RAG_PROMPT_TEMPLATE,
+    RAG_TYPE_STANDARD,
+)
 from rag_comparision.core.data_loader import load_synthetic_articles_dataset
 from rag_comparision.core.embeddings import get_default_embedding_model
-from rag_comparision.core.ollama import OllamaClient
+from rag_comparision.core.ollama import OllamaClient, OllamaStreamChunk
 from rag_comparision.core.vector_store import ChromaVectorStore, VectorStoreInterface
 
 
@@ -73,7 +85,7 @@ class RAGResponse:
 class RAGSystem(ABC):
     """Abstract base class for RAG systems."""
 
-    def __init__(self, rag_type: str, model: str = 'tinyllama'):
+    def __init__(self, rag_type: str, model: str = DEFAULT_MODEL_FALLBACK):
         """Initialize RAG system.
 
         Args:
@@ -110,12 +122,12 @@ class StandardRAG(RAGSystem):
 
     def __init__(
         self,
-        model: str = 'tinyllama',
+        model: str = DEFAULT_MODEL_FALLBACK,
         embeddings: 'Embeddings | None' = None,
         vector_store: VectorStoreInterface | None = None,
         persist_directory: str | Path | None = None,
-        ollama_base_url: str = 'http://localhost:11434',
-        k_retrieval: int = 4,
+        ollama_base_url: str = OLLAMA_BASE_URL,
+        k_retrieval: int = DEFAULT_K_RETRIEVAL,
     ):
         """Initialize Standard RAG system.
 
@@ -127,7 +139,7 @@ class StandardRAG(RAGSystem):
             ollama_base_url: Base URL for Ollama API
             k_retrieval: Number of documents to retrieve
         """
-        super().__init__(rag_type='Standard RAG', model=model)
+        super().__init__(rag_type=RAG_TYPE_STANDARD, model=model)
         self.embeddings = embeddings or get_default_embedding_model()
         self.persist_directory = persist_directory
         self.k_retrieval = k_retrieval
@@ -149,13 +161,16 @@ class StandardRAG(RAGSystem):
 
         # Initialize retrieval chain (will be set up after data is loaded)
         self._qa_chain: Any = None
+        self._retriever: Any = None
+        self._prompt_template: PromptTemplate | None = None
         self._data_loaded = False
 
     def load_data(
         self,
         source: str | Path | None = None,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
+        force_reload: bool = False,
     ) -> None:
         """Load and index data into the vector store.
 
@@ -163,7 +178,26 @@ class StandardRAG(RAGSystem):
             source: Source of the dataset. If None, loads synthetic articles.
             chunk_size: Size of text chunks
             chunk_overlap: Overlap between chunks
+            force_reload: If True, reload data even if it already exists.
+                If False, skip loading if data already exists in vector store.
         """
+        # Check if data already exists in the vector store
+        if not force_reload and self._data_loaded:
+            # Data was already loaded in this session
+            return
+
+        # Check if vector store already has documents
+        try:
+            doc_count = self.vector_store.count()
+            if doc_count > 0 and not force_reload:
+                # Data already exists, just set up the retrieval chain
+                self._setup_retrieval_chain()
+                self._data_loaded = True
+                return
+        except Exception:
+            # If count() fails, assume empty and proceed with loading
+            pass
+
         # Load documents
         documents = load_synthetic_articles_dataset(
             source=source,
@@ -199,14 +233,7 @@ class StandardRAG(RAGSystem):
         if PromptTemplate is not None:
             prompt_template = PromptTemplate(
                 input_variables=['context', 'question'],
-                template=(
-                    'Use the following pieces of context to answer the question. '
-                    'If you don\'t know the answer, just say that you don\'t know, '
-                    'don\'t try to make up an answer.\n\n'
-                    'Context:\n{context}\n\n'
-                    'Question: {question}\n\n'
-                    'Answer:'
-                ),
+                template=RAG_PROMPT_TEMPLATE,
             )
         else:
             prompt_template = None
@@ -229,11 +256,23 @@ class StandardRAG(RAGSystem):
             # Auto-load data if not loaded
             self.load_data()
 
-        # Retrieve relevant documents
-        retrieved_docs = self.vector_store.similarity_search(
-            prompt,
-            k=self.k_retrieval,
-        )
+        # Retrieve relevant documents with scores
+        try:
+            docs_with_scores = self.vector_store.similarity_search_with_score(
+                prompt,
+                k=self.k_retrieval,
+            )
+        except Exception:
+            # Fallback to search without scores
+            docs_with_scores = [
+                (doc, 0.0)
+                for doc in self.vector_store.similarity_search(
+                    prompt,
+                    k=self.k_retrieval,
+                )
+            ]
+
+        retrieved_docs = [doc for doc, _ in docs_with_scores]
 
         # Build context from retrieved documents
         context_parts = []
@@ -250,10 +289,9 @@ class StandardRAG(RAGSystem):
             )
         else:
             # Simple prompt format
-            formatted_prompt = (
-                f'Context:\n{context}\n\n'
-                f'Question: {prompt}\n\n'
-                f'Answer based on the context above:'
+            formatted_prompt = RAG_PROMPT_SIMPLE.format(
+                context=context,
+                question=prompt,
             )
 
         # Generate response using Ollama
@@ -266,32 +304,33 @@ class StandardRAG(RAGSystem):
                 f'Retrieved {len(retrieved_docs)} documents:\n\n{context}'
             )
 
-        # Calculate average similarity score (if available)
-        try:
-            docs_with_scores = self.vector_store.similarity_search_with_score(
-                prompt,
-                k=self.k_retrieval,
+        # Calculate average confidence from scores
+        if docs_with_scores:
+            scores = [score for _, score in docs_with_scores]
+            avg_distance = sum(scores) / len(scores)
+            # Normalize cosine distance [0, 2] to [0, 1] then invert for confidence
+            normalized_distance = min(1.0, avg_distance / 2.0)
+            confidence = max(
+                CONFIDENCE_MIN, min(CONFIDENCE_MAX, 1.0 - normalized_distance)
             )
-            avg_score = sum(score for _, score in docs_with_scores) / len(
-                docs_with_scores
-            ) if docs_with_scores else 0.0
-            # Convert distance to confidence (inverse relationship)
-            confidence = max(0.0, min(1.0, 1.0 - avg_score))
-        except Exception:
-            confidence = 0.5  # Default confidence
+        else:
+            confidence = DEFAULT_CONFIDENCE
 
-        # Extract metadata from retrieved documents
+        # Extract metadata from retrieved documents with individual scores
         metadata = {
             'retrieved_documents': len(retrieved_docs),
             'retrieval_k': self.k_retrieval,
+            'context': context,  # Full context sent to model
+            'formatted_prompt': formatted_prompt,  # Exact prompt sent to LLM
             'documents': [
                 {
-                    'content': doc.page_content[:200] + '...'
-                    if len(doc.page_content) > 200
-                    else doc.page_content,
+                    'content': doc.page_content,  # Full content, not truncated
                     'metadata': doc.metadata,
+                    'score': float(
+                        score
+                    ),  # ChromaDB distance score (lower = more similar)
                 }
-                for doc in retrieved_docs
+                for doc, score in docs_with_scores
             ],
         }
 
@@ -303,6 +342,112 @@ class StandardRAG(RAGSystem):
             confidence=confidence,
             metadata=metadata,
         )
+
+    def query_stream(
+        self, prompt: str, reasoning: bool | None = None
+    ) -> Generator[tuple[OllamaStreamChunk, dict], None, None]:
+        """Query the RAG system with streaming response.
+
+        Args:
+            prompt: User query
+            reasoning: Enable reasoning mode for supported models
+
+        Yields:
+            Tuples of (OllamaStreamChunk, metadata_dict) where metadata contains
+            retrieval information that remains constant across chunks
+        """
+        if not self._data_loaded:
+            # Auto-load data if not loaded
+            self.load_data()
+
+        # Retrieve relevant documents with scores
+        try:
+            docs_with_scores = self.vector_store.similarity_search_with_score(
+                prompt,
+                k=self.k_retrieval,
+            )
+        except Exception:
+            # Fallback to search without scores
+            docs_with_scores = [
+                (doc, 0.0)
+                for doc in self.vector_store.similarity_search(
+                    prompt,
+                    k=self.k_retrieval,
+                )
+            ]
+
+        retrieved_docs = [doc for doc, _ in docs_with_scores]
+
+        # Build context from retrieved documents
+        context_parts = []
+        for i, doc in enumerate(retrieved_docs, 1):
+            context_parts.append(f'[Document {i}]\n{doc.page_content}')
+
+        context = '\n\n'.join(context_parts)
+
+        # Create prompt with context
+        if self._prompt_template:
+            formatted_prompt = self._prompt_template.format(
+                context=context,
+                question=prompt,
+            )
+        else:
+            # Simple prompt format
+            formatted_prompt = RAG_PROMPT_SIMPLE.format(
+                context=context,
+                question=prompt,
+            )
+
+        # Calculate average confidence from scores
+        if docs_with_scores:
+            scores = [score for _, score in docs_with_scores]
+            avg_distance = sum(scores) / len(scores)
+            # Normalize cosine distance [0, 2] to [0, 1] then invert for confidence
+            normalized_distance = min(1.0, avg_distance / 2.0)
+            confidence = max(
+                CONFIDENCE_MIN, min(CONFIDENCE_MAX, 1.0 - normalized_distance)
+            )
+        else:
+            confidence = DEFAULT_CONFIDENCE
+
+        # Extract metadata from retrieved documents with individual scores (constant across all chunks)
+        metadata = {
+            'retrieved_documents': len(retrieved_docs),
+            'retrieval_k': self.k_retrieval,
+            'confidence': confidence,
+            'context': context,  # Full context sent to model
+            'formatted_prompt': formatted_prompt,  # Exact prompt sent to LLM
+            'documents': [
+                {
+                    'content': doc.page_content,  # Full content, not truncated
+                    'metadata': doc.metadata,
+                    'score': float(
+                        score
+                    ),  # ChromaDB distance score (lower = more similar)
+                }
+                for doc, score in docs_with_scores
+            ],
+        }
+
+        # Stream response using Ollama
+        try:
+            for chunk in self.ollama_client.stream_chat(
+                formatted_prompt, reasoning=reasoning
+            ):
+                yield chunk, metadata
+        except Exception as e:
+            # On error, yield a single chunk with error message
+            error_content = (
+                f'Error generating response: {str(e)}\n\n'
+                f'Retrieved {len(retrieved_docs)} documents:\n\n{context}'
+            )
+            yield (
+                OllamaStreamChunk(
+                    content=error_content,
+                    done=True,
+                ),
+                metadata,
+            )
 
     def get_vector_store(self) -> VectorStoreInterface:
         """Get the vector store instance.

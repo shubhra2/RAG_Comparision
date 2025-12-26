@@ -1,11 +1,15 @@
 """Embedding generation module."""
 
-from typing import Any
+from rag_comparision.config import (
+    DEFAULT_EMBEDDING_MODEL,
+    EMBEDDING_DEVICE,
+    EMBEDDING_NORMALIZE,
+)
 
 try:
     # Try new langchain-huggingface package first (recommended)
-    from langchain_huggingface import HuggingFaceEmbeddings
     from langchain_core.embeddings import Embeddings
+    from langchain_huggingface import HuggingFaceEmbeddings
 except ImportError:
     try:
         # Fallback to deprecated langchain_community version
@@ -34,16 +38,16 @@ def get_default_embedding_model() -> 'Embeddings':
     # Use a lightweight, fast embedding model
     # all-MiniLM-L6-v2 is a good balance of quality and speed
     return HuggingFaceEmbeddings(
-        model_name='sentence-transformers/all-MiniLM-L6-v2',
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True},
+        model_name=DEFAULT_EMBEDDING_MODEL,
+        model_kwargs={'device': EMBEDDING_DEVICE},
+        encode_kwargs={'normalize_embeddings': EMBEDDING_NORMALIZE},
     )
 
 
 def create_embedding_model(
-    model_name: str = 'sentence-transformers/all-MiniLM-L6-v2',
-    device: str = 'cpu',
-    normalize: bool = True,
+    model_name: str = DEFAULT_EMBEDDING_MODEL,
+    device: str = EMBEDDING_DEVICE,
+    normalize: bool = EMBEDDING_NORMALIZE,
 ) -> 'Embeddings':
     """Create a custom embedding model.
 
@@ -69,4 +73,3 @@ def create_embedding_model(
         model_kwargs={'device': device},
         encode_kwargs={'normalize_embeddings': normalize},
     )
-

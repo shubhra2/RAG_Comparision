@@ -11,6 +11,11 @@ except ImportError:
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from rag_comparision.config import (
+    DEFAULT_CHUNK_OVERLAP,
+    DEFAULT_CHUNK_SIZE,
+    PROCESSED_DATA_PATH,
+)
 from rag_comparision.core.data_preprocessing import (
     preprocess_synthetic_articles_dataset,
 )
@@ -18,8 +23,8 @@ from rag_comparision.core.data_preprocessing import (
 
 def load_synthetic_articles_dataset(
     source: str | Path | None = None,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+    chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
     processed_data_path: str | Path | None = None,
     force_reprocess: bool = False,
 ) -> list[Document]:
@@ -33,7 +38,7 @@ def load_synthetic_articles_dataset(
         chunk_size: Size of text chunks for splitting
         chunk_overlap: Overlap between chunks
         processed_data_path: Path to preprocessed parquet file. If None, uses
-            default location 'data/processed/synthetic_articles.parquet'
+            default location from config
         force_reprocess: If True, reprocesses data even if parquet exists
 
     Returns:
@@ -51,6 +56,8 @@ def load_synthetic_articles_dataset(
 
     try:
         # Load preprocessed data (or process if needed)
+        if processed_data_path is None:
+            processed_data_path = PROCESSED_DATA_PATH
         df = preprocess_synthetic_articles_dataset(
             source=source,
             output_path=processed_data_path,
@@ -60,48 +67,50 @@ def load_synthetic_articles_dataset(
         # Debug: Print column names to help diagnose issues
         print(f'DataFrame columns: {list(df.columns)}')
         print(f'DataFrame shape: {df.shape}')
-        
+
         # Convert DataFrame to list of documents
         # Combine relevant fields into text content
         documents = []
         skipped_count = 0
-        
-        for idx, row in df.iterrows():
+
+        for _, row in df.iterrows():
             # Create a comprehensive text representation
             text_parts = []
-            
+
             # Check columns exist in DataFrame, not in row (row is a Series)
             if 'Title' in df.columns:
                 val = row.get('Title', '')
                 if pd.notna(val) and str(val).strip():
-                    text_parts.append(f"Title: {str(val).strip()}")
-            
+                    text_parts.append(f'Title: {str(val).strip()}')
+
             if 'Abstract' in df.columns:
                 val = row.get('Abstract', '')
                 if pd.notna(val) and str(val).strip():
-                    text_parts.append(f"Abstract: {str(val).strip()}")
-            
+                    text_parts.append(f'Abstract: {str(val).strip()}')
+
             if 'Topic' in df.columns:
                 val = row.get('Topic', '')
                 if pd.notna(val) and str(val).strip():
-                    text_parts.append(f"Topic: {str(val).strip()}")
-            
+                    text_parts.append(f'Topic: {str(val).strip()}')
+
             if 'Subtopic' in df.columns:
                 val = row.get('Subtopic', '')
                 if pd.notna(val) and str(val).strip():
-                    text_parts.append(f"Subtopic: {str(val).strip()}")
-            
+                    text_parts.append(f'Subtopic: {str(val).strip()}')
+
             if 'Authors' in df.columns:
                 val = row.get('Authors', '')
                 if pd.notna(val) and str(val).strip():
-                    text_parts.append(f"Authors: {str(val).strip()}")
-            
+                    text_parts.append(f'Authors: {str(val).strip()}')
+
             if 'Publication_Date' in df.columns:
                 val = row.get('Publication_Date', '')
                 if pd.notna(val):
                     pub_date = str(val).strip()
-                    if pub_date and pub_date != 'NaT' and pub_date != 'nan':  # Handle datetime NaT
-                        text_parts.append(f"Publication Date: {pub_date}")
+                    if (
+                        pub_date and pub_date != 'NaT' and pub_date != 'nan'
+                    ):  # Handle datetime NaT
+                        text_parts.append(f'Publication Date: {pub_date}')
 
             text = '\n'.join(text_parts)
 
@@ -137,7 +146,9 @@ def load_synthetic_articles_dataset(
                 error_msg += f'Sample row values: {dict(sample_row)}'
             raise ValueError(error_msg)
 
-        print(f'Created {len(documents)} documents from {len(df)} rows ({skipped_count} skipped)')
+        print(
+            f'Created {len(documents)} documents from {len(df)} rows ({skipped_count} skipped)'
+        )
 
         # Split documents into chunks
         text_splitter = RecursiveCharacterTextSplitter(
@@ -150,7 +161,8 @@ def load_synthetic_articles_dataset(
 
         # Filter out empty chunks
         filtered_chunks = [
-            chunk for chunk in chunks
+            chunk
+            for chunk in chunks
             if chunk.page_content and chunk.page_content.strip()
         ]
 
@@ -160,9 +172,10 @@ def load_synthetic_articles_dataset(
                 'Check that the dataset contains non-empty text fields.'
             )
 
-        print(f'Created {len(filtered_chunks)} document chunks from {len(documents)} documents')
+        print(
+            f'Created {len(filtered_chunks)} document chunks from {len(documents)} documents'
+        )
         return filtered_chunks
 
     except Exception as e:
         raise ValueError(f'Failed to load dataset: {str(e)}') from e
-

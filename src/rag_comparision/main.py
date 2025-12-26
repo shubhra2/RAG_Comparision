@@ -5,14 +5,16 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from rag_comparision.config import APP_NAME, APP_VERSION
+
 # Get the base directory
 BASE_DIR = Path(__file__).parent.parent.parent
 STATIC_DIR = BASE_DIR / 'src' / 'rag_comparision' / 'static'
 
 app = FastAPI(
-    title='RAG Comparison Project API',
+    title=f'{APP_NAME} API',
     description='Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and Quality Improvements over Standard RAG Systems',
-    version='0.1.0',
+    version=APP_VERSION,
 )
 
 # Mount static files (for icons/images used by Streamlit)

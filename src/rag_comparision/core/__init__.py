@@ -16,6 +16,7 @@ from rag_comparision.core.ollama import (
     OllamaStreamChunk,
 )
 from rag_comparision.core.rag import RAGResponse, RAGSystem, StandardRAG
+from rag_comparision.core.sidebar import render_sidebar
 from rag_comparision.core.vector_store import (
     ChromaVectorStore,
     VectorStoreInterface,
@@ -36,4 +37,5 @@ __all__ = [
     'create_embedding_model',
     'ChromaVectorStore',
     'VectorStoreInterface',
+    'render_sidebar',
 ]

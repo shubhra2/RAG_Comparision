@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import HTMLResponse
 
+from rag_comparision.config import APP_VERSION, PORT
+
 router = APIRouter()
 
 
@@ -9,14 +11,14 @@ router = APIRouter()
 def read_root():
     """Default route for API router."""
     return {
-        'message': 'RAG Comparison API Router is active. Docs: http://localhost:8000/docs'
+        'message': f'RAG Comparison API Router is active. Docs: http://localhost:{PORT}/docs'
     }
 
 
 @router.get('/health')
 async def health_check():
     """Health check endpoint."""
-    return {'status': 'healthy', 'version': '0.1.0'}
+    return {'status': 'healthy', 'version': APP_VERSION}
 
 
 @router.get('/redocs', response_class=HTMLResponse)
