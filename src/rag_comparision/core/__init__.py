@@ -15,7 +15,13 @@ from rag_comparision.core.ollama import (
     OllamaResponse,
     OllamaStreamChunk,
 )
-from rag_comparision.core.rag import RAGResponse, RAGSystem, StandardRAG
+from rag_comparision.core.rag import (
+    GraphRAG,
+    Neo4jEmptyError,
+    RAGResponse,
+    RAGSystem,
+    StandardRAG,
+)
 from rag_comparision.core.sidebar import render_sidebar
 from rag_comparision.core.vector_store import (
     ChromaVectorStore,
@@ -29,6 +35,8 @@ __all__ = [
     'RAGSystem',
     'RAGResponse',
     'StandardRAG',
+    'GraphRAG',
+    'Neo4jEmptyError',
     'get_dataset_info',
     'load_synthetic_articles_dataset',
     'preprocess_synthetic_articles_dataset',

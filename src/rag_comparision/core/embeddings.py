@@ -37,6 +37,7 @@ def get_default_embedding_model() -> 'Embeddings':
 
     # Use a lightweight, fast embedding model
     # all-MiniLM-L6-v2 is a good balance of quality and speed
+    # Note: SentenceTransformer uses 'device' parameter, not 'device_map'
     return HuggingFaceEmbeddings(
         model_name=DEFAULT_EMBEDDING_MODEL,
         model_kwargs={'device': EMBEDDING_DEVICE},
@@ -68,6 +69,7 @@ def create_embedding_model(
             'Install it with: pip install langchain-huggingface'
         )
 
+    # Note: SentenceTransformer uses 'device' parameter, not 'device_map'
     return HuggingFaceEmbeddings(
         model_name=model_name,
         model_kwargs={'device': device},

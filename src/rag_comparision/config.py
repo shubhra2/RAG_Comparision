@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     # Timeout Configuration
     ollama_timeout: float = 10.0
 
+    # Neo4j Configuration
+    neo4j_uri: str = 'bolt://localhost:7687'
+    neo4j_username: str = 'neo4j'
+    neo4j_password: str = 'admin12345'
+    neo4j_database: str = 'neo4j'
+
     class Config:
         """Pydantic config."""
 
@@ -107,6 +113,12 @@ CONFIDENCE_MAX = settings.confidence_max
 
 # Timeout Configuration
 OLLAMA_TIMEOUT = settings.ollama_timeout
+
+# Neo4j Configuration
+NEO4J_URI = settings.neo4j_uri
+NEO4J_USERNAME = settings.neo4j_username
+NEO4J_PASSWORD = settings.neo4j_password
+NEO4J_DATABASE = settings.neo4j_database
 
 # Prompt Templates
 RAG_PROMPT_TEMPLATE = (

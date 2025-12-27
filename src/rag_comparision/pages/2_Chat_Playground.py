@@ -10,8 +10,8 @@ from rag_comparision.config import (
     RAG_TYPE_GRAPH,
     RAG_TYPE_STANDARD,
 )
-from rag_comparision.core import StandardRAG
-from rag_comparision.core.rag import ChromaDBEmptyError
+from rag_comparision.core import GraphRAG, StandardRAG
+from rag_comparision.core.rag import ChromaDBEmptyError, Neo4jEmptyError
 from rag_comparision.core.sidebar import render_sidebar
 
 
@@ -105,52 +105,14 @@ st.info(
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 
-# Check if Graph-Based RAG is selected (not yet implemented)
-if rag_type == RAG_TYPE_GRAPH:
-    st.warning(
-        '️ **Graph-Based RAG is not yet implemented.** '
-        'Please select "Standard RAG" to use the RAG system.'
-    )
-    st.stop()
+# Graph-Based RAG is now implemented, no need to stop
 
 # Initialize RAG system in session state (reuse if settings haven't changed)
 rag_key = f'rag_{rag_type}_{model}_{k_retrieval}_{persist_directory}_{ollama_base_url}'
 if rag_key not in st.session_state:
     with st.spinner('Initializing RAG system...'):
         try:
-            st.session_state[rag_key] = StandardRAG(
-                model=model,
-                persist_directory=persist_directory if persist_directory else None,
-                ollama_base_url=ollama_base_url,
-                k_retrieval=k_retrieval,
-            )
-            # Check if ChromaDB has data
-            try:
-                doc_count = st.session_state[rag_key].vector_store.count()
-                if doc_count > 0:
-                    st.success(
-                        f' RAG system initialized! ChromaDB contains {doc_count} documents.'
-                    )
-                else:
-                    st.warning(
-                        '️ **ChromaDB is empty.** Please load data from the Dataset Preview page '
-                        'before querying the RAG system.'
-                    )
-            except Exception as e:
-                st.warning(
-                    f'️ **Could not check ChromaDB status:** {str(e)}\n\n'
-                    'Please ensure ChromaDB is accessible or load data from the Dataset Preview page.'
-                )
-        except Exception as e:
-            st.error(f' **Error initializing RAG system:**\n\n`{str(e)}`')
-            st.session_state[rag_key] = None
-else:
-    # Check if the cached instance has query_stream method (in case code was updated)
-    rag_system = st.session_state.get(rag_key)
-    if rag_system and not hasattr(rag_system, 'query_stream'):
-        # Reinitialize if method is missing (code was updated)
-        with st.spinner('Reinitializing RAG system (code updated)...'):
-            try:
+            if rag_type == RAG_TYPE_STANDARD:
                 st.session_state[rag_key] = StandardRAG(
                     model=model,
                     persist_directory=persist_directory if persist_directory else None,
@@ -162,7 +124,7 @@ else:
                     doc_count = st.session_state[rag_key].vector_store.count()
                     if doc_count > 0:
                         st.success(
-                            f' RAG system reinitialized! ChromaDB contains {doc_count} documents.'
+                            f' RAG system initialized! ChromaDB contains {doc_count} documents.'
                         )
                     else:
                         st.warning(
@@ -174,6 +136,88 @@ else:
                         f'️ **Could not check ChromaDB status:** {str(e)}\n\n'
                         'Please ensure ChromaDB is accessible or load data from the Dataset Preview page.'
                     )
+            elif rag_type == RAG_TYPE_GRAPH:
+                st.session_state[rag_key] = GraphRAG(
+                    model=model,
+                    ollama_base_url=ollama_base_url,
+                )
+                # Check if Neo4j graph has data
+                try:
+                    node_count = st.session_state[rag_key].graph_loader.get_node_count()
+                    if node_count > 0:
+                        st.success(
+                            f' Graph-Based RAG initialized! Neo4j graph contains {node_count} nodes.'
+                        )
+                    else:
+                        st.warning(
+                            '️ **Neo4j graph is empty.** Please load data from the Dataset Preview page '
+                            'before querying the RAG system.'
+                        )
+                except Exception as e:
+                    st.warning(
+                        f'️ **Could not check Neo4j status:** {str(e)}\n\n'
+                        'Please ensure Neo4j is running and accessible, or load data from the Dataset Preview page.'
+                    )
+        except Exception as e:
+            st.error(f' **Error initializing RAG system:**\n\n`{str(e)}`')
+            st.session_state[rag_key] = None
+else:
+    # Check if the cached instance has query_stream method (in case code was updated)
+    rag_system = st.session_state.get(rag_key)
+    if rag_system and not hasattr(rag_system, 'query_stream'):
+        # Reinitialize if method is missing (code was updated)
+        with st.spinner('Reinitializing RAG system (code updated)...'):
+            try:
+                if rag_type == RAG_TYPE_STANDARD:
+                    st.session_state[rag_key] = StandardRAG(
+                        model=model,
+                        persist_directory=persist_directory
+                        if persist_directory
+                        else None,
+                        ollama_base_url=ollama_base_url,
+                        k_retrieval=k_retrieval,
+                    )
+                    # Check if ChromaDB has data
+                    try:
+                        doc_count = st.session_state[rag_key].vector_store.count()
+                        if doc_count > 0:
+                            st.success(
+                                f' RAG system reinitialized! ChromaDB contains {doc_count} documents.'
+                            )
+                        else:
+                            st.warning(
+                                '️ **ChromaDB is empty.** Please load data from the Dataset Preview page '
+                                'before querying the RAG system.'
+                            )
+                    except Exception as e:
+                        st.warning(
+                            f'️ **Could not check ChromaDB status:** {str(e)}\n\n'
+                            'Please ensure ChromaDB is accessible or load data from the Dataset Preview page.'
+                        )
+                elif rag_type == RAG_TYPE_GRAPH:
+                    st.session_state[rag_key] = GraphRAG(
+                        model=model,
+                        ollama_base_url=ollama_base_url,
+                    )
+                    # Check if Neo4j graph has data
+                    try:
+                        node_count = st.session_state[
+                            rag_key
+                        ].graph_loader.get_node_count()
+                        if node_count > 0:
+                            st.success(
+                                f' Graph-Based RAG reinitialized! Neo4j graph contains {node_count} nodes.'
+                            )
+                        else:
+                            st.warning(
+                                '️ **Neo4j graph is empty.** Please load data from the Dataset Preview page '
+                                'before querying the RAG system.'
+                            )
+                    except Exception as e:
+                        st.warning(
+                            f'️ **Could not check Neo4j status:** {str(e)}\n\n'
+                            'Please ensure Neo4j is running and accessible, or load data from the Dataset Preview page.'
+                        )
             except Exception as e:
                 st.error(f' **Error reinitializing RAG system:**\n\n`{str(e)}`')
                 st.session_state[rag_key] = None
@@ -382,12 +426,19 @@ if prompt := st.chat_input('Ask a question about the knowledge base...'):
                             'metadata': metadata,
                         }
                     )
-        except ChromaDBEmptyError as e:
-            error_msg = (
-                f'️ **ChromaDB is empty.**\n\n'
-                f'{str(e)}\n\n'
-                'Please go to the **Dataset Preview** page to load data into ChromaDB.'
-            )
+        except (ChromaDBEmptyError, Neo4jEmptyError) as e:
+            if isinstance(e, ChromaDBEmptyError):
+                error_msg = (
+                    f'️ **ChromaDB is empty.**\n\n'
+                    f'{str(e)}\n\n'
+                    'Please go to the **Dataset Preview** page to load data into ChromaDB.'
+                )
+            else:
+                error_msg = (
+                    f'️ **Neo4j graph is empty.**\n\n'
+                    f'{str(e)}\n\n'
+                    'Please go to the **Dataset Preview** page to load data into Neo4j.'
+                )
             st.error(error_msg)
             st.session_state.messages.append(
                 {
