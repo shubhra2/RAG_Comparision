@@ -1,0 +1,148 @@
+{
+  "evaluations": [
+    {
+      "timestamp": "2026-02-03T02:44:40.063890",
+      "total_queries": 1,
+      "standard_rag": {
+        "metrics": {
+          "faithfulness": 1.0,
+          "answer_relevancy": 0.8521441738612515,
+          "context_precision": 0.0,
+          "context_recall": 1.0
+        },
+        "accuracy": 0.7130360434653129
+      },
+      "graph_rag_agentic": {
+        "metrics": {
+          "faithfulness": 1.0,
+          "answer_relevancy": 0.6048627223939578,
+          "context_precision": 0.9999999999,
+          "context_recall": 0.3333333333333333
+        },
+        "accuracy": 0.7345490139068228
+      },
+      "summary": {
+        "context_recall": {
+          "standard_rag": 1.0,
+          "difference": -0.6666666666666667,
+          "winner": "Standard RAG",
+          "graph_rag_agentic": 0.3333333333333333
+        },
+        "context_precision": {
+          "standard_rag": 0.0,
+          "difference": 0.9999999999,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.9999999999
+        },
+        "answer_relevancy": {
+          "standard_rag": 0.8521441738612515,
+          "difference": -0.24728145146729374,
+          "winner": "Standard RAG",
+          "graph_rag_agentic": 0.6048627223939578
+        },
+        "faithfulness": {
+          "standard_rag": 1.0,
+          "difference": 0.0,
+          "winner": "Tie",
+          "graph_rag_agentic": 1.0
+        }
+      }
+    },
+    {
+      "timestamp": "2026-02-03T03:11:02.219272",
+      "total_queries": 5,
+      "standard_rag": {
+        "metrics": {
+          "faithfulness": 0.6,
+          "answer_relevancy": 0.607148425265169,
+          "context_precision": 0.7999999999766667,
+          "context_recall": 0.6799999999999999
+        },
+        "accuracy": 0.6717871063104589
+      },
+      "graph_rag_agentic": {
+        "metrics": {
+          "faithfulness": 0.7138888888888889,
+          "answer_relevancy": 0.7454129933456146,
+          "context_precision": 0.79999999992,
+          "context_recall": 0.6
+        },
+        "accuracy": 0.7148254705386259
+      },
+      "summary": {
+        "faithfulness": {
+          "standard_rag": 0.6,
+          "difference": 0.11388888888888893,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.7138888888888889
+        },
+        "context_recall": {
+          "standard_rag": 0.6799999999999999,
+          "difference": -0.07999999999999996,
+          "winner": "Standard RAG",
+          "graph_rag_agentic": 0.6
+        },
+        "answer_relevancy": {
+          "standard_rag": 0.607148425265169,
+          "difference": 0.13826456808044563,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.7454129933456146
+        },
+        "context_precision": {
+          "standard_rag": 0.7999999999766667,
+          "difference": -5.666667135528769e-11,
+          "winner": "Standard RAG",
+          "graph_rag_agentic": 0.79999999992
+        }
+      }
+    },
+    {
+      "timestamp": "2026-02-03T03:44:29.088135",
+      "total_queries": 5,
+      "standard_rag": {
+        "metrics": {
+          "faithfulness": 0.6,
+          "answer_relevancy": 0.471744547539943,
+          "context_precision": 0.7999999999783334,
+          "context_recall": 0.6533333333333333
+        },
+        "accuracy": 0.6312694702129025
+      },
+      "graph_rag_agentic": {
+        "metrics": {
+          "faithfulness": 0.5721590909090909,
+          "answer_relevancy": 0.7863398900018745,
+          "context_precision": 0.9999999999,
+          "context_recall": 0.7333333333333333
+        },
+        "accuracy": 0.7729580785360747
+      },
+      "summary": {
+        "context_precision": {
+          "standard_rag": 0.7999999999783334,
+          "difference": 0.19999999992166662,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.9999999999
+        },
+        "answer_relevancy": {
+          "standard_rag": 0.471744547539943,
+          "difference": 0.31459534246193155,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.7863398900018745
+        },
+        "faithfulness": {
+          "standard_rag": 0.6,
+          "difference": -0.027840909090909083,
+          "winner": "Standard RAG",
+          "graph_rag_agentic": 0.5721590909090909
+        },
+        "context_recall": {
+          "standard_rag": 0.6533333333333333,
+          "difference": 0.07999999999999996,
+          "winner": "Graph RAG (Agentic)",
+          "graph_rag_agentic": 0.7333333333333333
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+@startuml
+title Standard Retrieval-Augmented Generation (RAG) Architecture
+
+actor User
+
+rectangle "Frontend UI" {
+  User --> UI : Enter Query
+}
+
+rectangle "Backend (LangChain)" {
+  UI --> QueryHandler : User Query
+
+  QueryHandler --> Retriever : Retrieve relevant chunks
+  Retriever --> VectorStore : Similarity Search
+  VectorStore --> Retriever : Top-k documents
+
+  Retriever --> PromptBuilder : Context + Query
+  PromptBuilder --> LLM : Generate Answer
+  LLM --> PromptBuilder : Response
+}
+
+rectangle "Data Layer" {
+  VectorStore --> EmbeddingModel : Stored embeddings
+  DocumentStore --> EmbeddingModel : Document chunks
+}
+
+PromptBuilder --> UI : Final Answer
+
+@enduml

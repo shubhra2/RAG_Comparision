@@ -1,0 +1,100 @@
+@startuml System Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam arrowThickness 2
+skinparam nodesep 40
+skinparam ranksep 100
+skinparam padding 15
+
+title RAG Comparison System - Architecture
+
+' Define layers from top to bottom
+package "Presentation Layer" {
+  component [Streamlit Dashboard] as Dashboard
+  component [Chat Playground] as Chat
+  component [Ollama Test] as OllamaTest
+}
+
+package "Application Layer" {
+  component [RAG Interface] as RAGInterface
+  component [Standard RAG] as StandardRAG
+  component [Graph-Based RAG] as GraphRAG
+}
+
+package "Service Layer" {
+  component [Embedding Service\n(Sentence Transformers)] as Embeddings
+  component [Vector Store Service\n(ChromaDB/FAISS)] as VectorStore
+  component [Knowledge Graph Service\n(Neo4j)] as KnowledgeGraph
+  component [Ollama Client] as OllamaClient
+  component [LLM Models\n(qwen3, gemma3, phi4)] as LLMModels
+}
+
+package "Data Layer" {
+  database [Synthetic Articles Dataset] as Dataset
+  database [Documents] as Documents
+  database [Vector Store\n(ChromaDB)] as VectorDB
+  database [Knowledge Graph\n(Neo4j)] as GraphDB
+}
+
+package "Evaluation Layer" #LightGray {
+  component [Evaluation Runner] as EvalRunner
+  component [RAGAS Metrics] as RAGAS
+}
+
+' Presentation to Application Layer
+Dashboard --> RAGInterface : queries
+Chat --> RAGInterface : queries
+OllamaTest --> OllamaClient : test
+
+' Application Layer internal
+RAGInterface --> StandardRAG : route
+RAGInterface --> GraphRAG : route
+
+' Application to Service Layer
+StandardRAG --> Embeddings : embed query
+GraphRAG --> Embeddings : embed query
+StandardRAG --> VectorStore : retrieve
+GraphRAG --> KnowledgeGraph : query graph
+StandardRAG --> OllamaClient : generate
+GraphRAG --> OllamaClient : generate
+
+' Service Layer internal
+OllamaClient --> LLMModels : inference
+Embeddings --> VectorStore : create embeddings
+Embeddings --> KnowledgeGraph : create embeddings
+
+' Service to Data Layer
+VectorStore --> VectorDB : read/write
+KnowledgeGraph --> GraphDB : query
+Documents --> VectorDB : index
+Documents --> GraphDB : populate
+
+' Data Layer internal
+Dataset --> Documents : process
+
+' Evaluation Layer (cross-cutting)
+EvalRunner --> StandardRAG : evaluate
+EvalRunner --> GraphRAG : evaluate
+EvalRunner --> RAGAS : collect metrics
+EvalRunner --> Dataset : load test data
+
+note right of RAGInterface
+  **Routing Logic**
+  Routes queries to either
+  Standard RAG or Graph-Based RAG
+end note
+
+note right of Embeddings
+  **Shared Service**
+  Used by both RAG approaches
+  for embedding generation
+end note
+
+note bottom of EvalRunner
+  **Evaluation Framework**
+  Runs independently to evaluate
+  both RAG systems using RAGAS
+end note
+
+@enduml

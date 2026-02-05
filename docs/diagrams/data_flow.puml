@@ -1,0 +1,84 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam arrowThickness 2
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam padding 15
+
+title RAG Comparison System - Data Flow
+
+left to right direction
+
+' Data Source
+rectangle "Data Source" {
+  component [Synthetic Articles Dataset\n(CSV/URL)] as Dataset
+}
+
+' Preprocessing Layer
+rectangle "Data Preprocessing" {
+  component [CSV Loader\n(Error Handling)] as CSVLoader
+  component [Text Cleaner] as Cleaner
+  component [DataFrame Processor] as DFProcessor
+  database [Processed Data\n(Parquet Cache)] as ParquetCache
+}
+
+' Standard RAG Path
+rectangle "Standard RAG Pipeline" {
+  component [Document Converter] as DocConverter
+  component [Text Chunker\n(RecursiveCharacter)] as Chunker
+  component [Embedding Generator\n(Sentence Transformers)] as Embedder
+  database [Vector Store\n(ChromaDB)] as ChromaDB
+}
+
+' Graph RAG Path
+rectangle "Graph RAG Pipeline" {
+  component [Entity Extractor] as EntityExtractor
+  component [Relationship Extractor] as RelExtractor
+  database [Knowledge Graph\n(Neo4j)] as Neo4j
+}
+
+' Data Source to Preprocessing
+Dataset --> CSVLoader : load CSV
+
+' Preprocessing flow
+CSVLoader --> Cleaner : raw data
+Cleaner --> DFProcessor : cleaned data
+DFProcessor --> ParquetCache : save parquet
+
+' Standard RAG path
+ParquetCache --> DocConverter : load DataFrame
+DocConverter --> Chunker : create documents
+Chunker --> Embedder : chunked documents
+Embedder --> ChromaDB : embeddings + metadata
+
+' Graph RAG path
+ParquetCache --> EntityExtractor : load DataFrame
+EntityExtractor --> RelExtractor : entities
+RelExtractor --> Neo4j : nodes & relationships
+
+' Add labels to show what's created
+note right of ChromaDB
+  **Stored:**
+  - Document chunks
+  - Embeddings (vectors)
+  - Metadata (Title, Topic, etc.)
+end note
+
+note right of Neo4j
+  **Stored:**
+  - Article nodes
+  - Researcher nodes
+  - Topic nodes
+  - PUBLISHED relationships
+  - IN_TOPIC relationships
+end note
+
+note bottom of ParquetCache
+  **Cached intermediate format**
+  - Avoids reprocessing
+  - Faster subsequent loads
+end note
+
+@enduml

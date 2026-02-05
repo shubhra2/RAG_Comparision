@@ -1,0 +1,60 @@
+@startuml Standard RAG Data Transformation
+!theme plain
+skinparam activity {
+  BackgroundColor #E8F4F8
+  BorderColor #2E7D8F
+  FontColor #000000
+}
+skinparam arrow {
+  Color #2E7D8F
+  Thickness 2
+}
+
+title Standard RAG - Data Transformation Flow
+
+start
+
+:User calls load_data();
+
+:Check if ChromaDB\nhas documents;
+
+if (Data exists?) then (yes)
+  :Setup retrieval chain;
+  stop
+else (no)
+  :Load CSV from source\n(URL or file);
+
+  :Clean text fields\n(Title, Abstract, Topic, Authors);
+
+  :Validate and filter rows;
+
+  :Save to Parquet cache\n(for future use);
+
+  :Convert DataFrame\nto LangChain Documents;
+
+  :Chunk documents\n(RecursiveCharacterTextSplitter\n1000 chars, 200 overlap);
+
+  partition "Embedding & Storage" {
+    while (For each document chunk?) is (more chunks)
+      :Generate embedding\n(Sentence Transformers\nall-MiniLM-L6-v2);
+
+      :Store in ChromaDB\n(vector, text, metadata);
+    endwhile (done)
+  }
+
+  :Setup retrieval chain\n(create retriever);
+
+  :Mark data_loaded = True;
+
+  stop
+endif
+
+note right
+  **Stored in ChromaDB:**
+  • Document chunks (text)
+  • Embedding vectors (384-dim)
+  • Metadata (Title, Topic, Authors)
+  • Document IDs
+end note
+
+@enduml

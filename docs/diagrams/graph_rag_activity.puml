@@ -1,0 +1,75 @@
+@startuml Graph RAG Data Transformation
+!theme plain
+skinparam activity {
+  BackgroundColor #E8F4F8
+  BorderColor #2E7D8F
+  FontColor #000000
+}
+skinparam arrow {
+  Color #2E7D8F
+  Thickness 2
+}
+
+title Graph-Based RAG - Data Transformation Flow
+
+start
+
+:User calls load_data();
+
+:Check if Neo4j graph\nhas nodes;
+
+if (Graph has data?) then (yes)
+  :Setup Cypher chain;
+  stop
+else (no)
+  :Load CSV from source\n(URL or file);
+
+  :Clean text fields\n(Title, Abstract, Topic,\nAuthors, Publication_Date);
+
+  :Validate and filter rows;
+
+  :Save to Parquet cache\n(for future use);
+
+  if (force_reload?) then (yes)
+    :Clear Neo4j graph\n(DELETE all nodes/relationships);
+  endif
+
+  partition "Entity & Relationship Extraction" {
+    while (For each row in DataFrame?) is (more rows)
+      :Extract Article data\n(Title, Abstract, Date);
+
+      :Create/merge Article node\nin Neo4j;
+
+      :Parse Authors\n(split comma-separated);
+
+      while (For each author?) is (more authors)
+        :Create/merge Researcher node;
+
+        :Create PUBLISHED relationship\n(Researcher → Article);
+      endwhile (done)
+
+      :Extract Topic;
+
+      :Create/merge Topic node;
+
+      :Create IN_TOPIC relationship\n(Article → Topic);
+    endwhile (done)
+  }
+
+  :Refresh Neo4j schema\n(indexes, constraints);
+
+  :Setup Cypher chain\n(GraphCypherQAChain);
+
+  :Mark data_loaded = True;
+
+  stop
+endif
+
+note right
+  **Graph Structure:**
+  • Nodes: Article, Researcher, Topic
+  • Relationships: PUBLISHED, IN_TOPIC
+  • Properties: title, abstract, name, publication_date
+end note
+
+@enduml

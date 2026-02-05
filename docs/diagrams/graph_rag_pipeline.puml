@@ -1,0 +1,31 @@
+@startuml
+title Graph-Based Retrieval-Augmented Generation (Graph-RAG) Architecture
+
+actor User
+
+rectangle "Frontend UI" {
+  User --> UI : Enter Query
+}
+
+rectangle "Backend (LangChain)" {
+  UI --> QueryHandler : User Query
+
+  QueryHandler --> EntityExtractor : Extract entities
+  EntityExtractor --> GraphRetriever : Graph traversal
+
+  GraphRetriever --> Neo4j : Query nodes & relations
+  Neo4j --> GraphRetriever : Subgraph context
+
+  GraphRetriever --> ContextBuilder : Structured context
+  ContextBuilder --> LLM : Generate Answer
+  LLM --> ContextBuilder : Response
+}
+
+rectangle "Knowledge Graph Layer" {
+  DocumentStore --> EntityExtractor : Documents
+  EntityExtractor --> Neo4j : Nodes & Relationships
+}
+
+ContextBuilder --> UI : Final Answer
+
+@enduml

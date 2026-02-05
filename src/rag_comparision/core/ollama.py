@@ -3,6 +3,12 @@
 import json
 from collections.abc import Generator
 
+from rag_comparision.config import (
+    DEFAULT_MODEL_FALLBACK,
+    OLLAMA_BASE_URL,
+    OLLAMA_TIMEOUT,
+)
+
 try:
     from langchain_core.messages import AIMessageChunk
     from langchain_ollama import ChatOllama
@@ -110,8 +116,8 @@ class OllamaClient:
 
     def __init__(
         self,
-        model: str = 'tinyllama',
-        base_url: str = 'http://localhost:11434',
+        model: str = DEFAULT_MODEL_FALLBACK,
+        base_url: str = OLLAMA_BASE_URL,
         reasoning: bool | None = None,
         temperature: float | None = None,
         num_predict: int | None = None,
@@ -185,13 +191,13 @@ class OllamaClient:
         try:
             if HAS_HTTPX:
                 # Use httpx if available (preferred)
-                with httpx.Client(timeout=10.0) as client:
+                with httpx.Client(timeout=OLLAMA_TIMEOUT) as client:
                     response = client.get(tags_url)
                     response.raise_for_status()
                     data = response.json()
             else:
                 # Fallback to urllib
-                with urlopen(tags_url, timeout=10) as response:
+                with urlopen(tags_url, timeout=int(OLLAMA_TIMEOUT)) as response:
                     data = json.loads(response.read().decode())
 
             # Extract model names
