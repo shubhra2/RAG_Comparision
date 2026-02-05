@@ -14,6 +14,10 @@ unfixable = ["B"]
 "__init__.py" = ["E402"]
 "**/{tests,docs,tools}/*" = ["E402"]
 
+[lint.isort]
+# Treat the main package as first-party for import sorting.
+known-first-party = ["rag_comparision"]
+
 [format]
 # 6. Use single quotes in `ruff format`.
 quote-style = "single"

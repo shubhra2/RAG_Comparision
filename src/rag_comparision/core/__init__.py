@@ -10,6 +10,11 @@ from rag_comparision.core.embeddings import (
     create_embedding_model,
     get_default_embedding_model,
 )
+from rag_comparision.core.llm_provider import (
+    LLMProvider,
+    LLMResponse,
+    LLMStreamChunk,
+)
 from rag_comparision.core.ollama import (
     OllamaClient,
     OllamaResponse,
@@ -17,6 +22,7 @@ from rag_comparision.core.ollama import (
 )
 from rag_comparision.core.rag import (
     GraphRAG,
+    GraphRAGAgentic,
     Neo4jEmptyError,
     RAGResponse,
     RAGSystem,
@@ -29,14 +35,22 @@ from rag_comparision.core.vector_store import (
 )
 
 __all__ = [
+    # LLM Provider (new, recommended)
+    'LLMProvider',
+    'LLMResponse',
+    'LLMStreamChunk',
+    # Ollama Client (legacy, kept for backward compatibility)
     'OllamaClient',
     'OllamaResponse',
     'OllamaStreamChunk',
+    # RAG Systems
     'RAGSystem',
     'RAGResponse',
     'StandardRAG',
     'GraphRAG',
+    'GraphRAGAgentic',
     'Neo4jEmptyError',
+    # Data and utilities
     'get_dataset_info',
     'load_synthetic_articles_dataset',
     'preprocess_synthetic_articles_dataset',

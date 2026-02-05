@@ -19,7 +19,7 @@ st.info(
 # Get settings from session state (set in sidebar)
 model = st.session_state.get('model', DEFAULT_MODEL)
 ollama_base_url = st.session_state.get('ollama_base_url', OLLAMA_BASE_URL)
-enable_streaming = st.session_state.get('enable_streaming', True)
+enable_streaming = st.session_state.get('enable_streaming', False)
 enable_reasoning = st.session_state.get('enable_reasoning', False)
 
 # Check if Ollama is available

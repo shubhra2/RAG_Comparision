@@ -72,7 +72,7 @@ def render_sidebar() -> None:
 
         st.session_state.enable_streaming = st.checkbox(
             'Enable Streaming',
-            value=True,
+            value=False,
             help='Stream responses token by token for better UX',
             key='enable_streaming_checkbox',
         )

@@ -8,9 +8,10 @@ from rag_comparision.config import (
     DEFAULT_PERSIST_DIRECTORY,
     OLLAMA_BASE_URL,
     RAG_TYPE_GRAPH,
+    RAG_TYPE_GRAPH_AGENTIC,
     RAG_TYPE_STANDARD,
 )
-from rag_comparision.core import GraphRAG, StandardRAG
+from rag_comparision.core import GraphRAG, GraphRAGAgentic, StandardRAG
 from rag_comparision.core.rag import ChromaDBEmptyError, Neo4jEmptyError
 from rag_comparision.core.sidebar import render_sidebar
 
@@ -92,7 +93,7 @@ model = st.session_state.get('model', DEFAULT_MODEL)
 k_retrieval = st.session_state.get('k_retrieval', DEFAULT_K_RETRIEVAL)
 persist_directory = st.session_state.get('persist_directory', DEFAULT_PERSIST_DIRECTORY)
 ollama_base_url = st.session_state.get('ollama_base_url', OLLAMA_BASE_URL)
-enable_streaming = st.session_state.get('enable_streaming', True)
+enable_streaming = st.session_state.get('enable_streaming', False)
 enable_reasoning = st.session_state.get('enable_reasoning', False)
 
 st.info(
@@ -108,7 +109,9 @@ if 'messages' not in st.session_state:
 # Graph-Based RAG is now implemented, no need to stop
 
 # Initialize RAG system in session state (reuse if settings haven't changed)
-rag_key = f'rag_{rag_type}_{model}_{k_retrieval}_{persist_directory}_{ollama_base_url}'
+# Include reasoning in key for agentic RAG
+reasoning_key = st.session_state.get('enable_reasoning', False)
+rag_key = f'rag_{rag_type}_{model}_{k_retrieval}_{persist_directory}_{ollama_base_url}_{reasoning_key}'
 if rag_key not in st.session_state:
     with st.spinner('Initializing RAG system...'):
         try:
@@ -147,6 +150,31 @@ if rag_key not in st.session_state:
                     if node_count > 0:
                         st.success(
                             f' Graph-Based RAG initialized! Neo4j graph contains {node_count} nodes.'
+                        )
+                    else:
+                        st.warning(
+                            '️ **Neo4j graph is empty.** Please load data from the Dataset Preview page '
+                            'before querying the RAG system.'
+                        )
+                except Exception as e:
+                    st.warning(
+                        f'️ **Could not check Neo4j status:** {str(e)}\n\n'
+                        'Please ensure Neo4j is running and accessible, or load data from the Dataset Preview page.'
+                    )
+            elif rag_type == RAG_TYPE_GRAPH_AGENTIC:
+                st.session_state[rag_key] = GraphRAGAgentic(
+                    model=model,
+                    ollama_base_url=ollama_base_url,
+                    reasoning=enable_reasoning if enable_reasoning else None,
+                    verbose=True,  # Enable logging for agentic workflow
+                )
+                # Check if Neo4j graph has data
+                try:
+                    node_count = st.session_state[rag_key].graph_loader.get_node_count()
+                    if node_count > 0:
+                        st.success(
+                            f' Graph-Based RAG (Agentic) initialized! Neo4j graph contains {node_count} nodes. '
+                            'Agentic workflow enabled with tool-based querying.'
                         )
                     else:
                         st.warning(
@@ -207,6 +235,33 @@ else:
                         if node_count > 0:
                             st.success(
                                 f' Graph-Based RAG reinitialized! Neo4j graph contains {node_count} nodes.'
+                            )
+                        else:
+                            st.warning(
+                                '️ **Neo4j graph is empty.** Please load data from the Dataset Preview page '
+                                'before querying the RAG system.'
+                            )
+                    except Exception as e:
+                        st.warning(
+                            f'️ **Could not check Neo4j status:** {str(e)}\n\n'
+                            'Please ensure Neo4j is running and accessible, or load data from the Dataset Preview page.'
+                        )
+                elif rag_type == RAG_TYPE_GRAPH_AGENTIC:
+                    st.session_state[rag_key] = GraphRAGAgentic(
+                        model=model,
+                        ollama_base_url=ollama_base_url,
+                        reasoning=enable_reasoning if enable_reasoning else None,
+                        verbose=True,  # Enable logging for agentic workflow
+                    )
+                    # Check if Neo4j graph has data
+                    try:
+                        node_count = st.session_state[
+                            rag_key
+                        ].graph_loader.get_node_count()
+                        if node_count > 0:
+                            st.success(
+                                f' Graph-Based RAG (Agentic) reinitialized! Neo4j graph contains {node_count} nodes. '
+                                'Agentic workflow enabled with tool-based querying.'
                             )
                         else:
                             st.warning(
