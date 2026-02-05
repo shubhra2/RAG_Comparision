@@ -1,7 +1,7 @@
 ---
-title: "Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and Quality Improvements over Standard RAG Systems"
-author: "Shubhra Gadhwala"
-date: "2024"
+# title: "Evaluating Graph-Based Retrieval-Augmented Generation: Comparative Analysis and Quality Improvements over Standard RAG Systems"
+# author: "Shubhra Gadhwala"
+# date: "2024"
 papersize: letter
 geometry:
   - paperwidth=9in
@@ -13,110 +13,15 @@ documentclass: book
 toc: true
 number-sections: true
 bibliography: references.bib
-# csl: ieee.csl  # Commented out - requires xcolor package. Uncomment after installing texlive-latex-extra
+csl: ieee.csl
 header-includes:
   - \usepackage{setspace}
   - \usepackage{graphicx}
   - \usepackage{listings}
   - \doublespacing
   - \lstset{breaklines=true,breakatwhitespace=true,basicstyle=\small\ttfamily,columns=fullflexible}
+  - \usepackage{placeins}
 ---
-
-\newpage
-\pagenumbering{roman}
-
-# Cover
-
-*[Cover page - to be replaced with actual cover image or formatted title page]*
-
-\newpage
-
-# Title Page
-
-\begin{titlepage}
-\centering
-\vspace*{2cm}
-
-{\Large \textbf{BIRLA INSTITUTE OF TECHNOLOGY AND SCIENCE, PILANI}}\\[0.5cm]
-{\large Work Integrated Learning Programmes Division}\\[1cm]
-
-\vspace{1cm}
-
-{\Large \textbf{Evaluating Graph-Based Retrieval-Augmented Generation:}}\\[0.3cm]
-{\Large \textbf{Comparative Analysis and Quality Improvements}}\\[0.3cm]
-{\Large \textbf{over Standard RAG Systems}}\\[2cm]
-
-\vspace{1cm}
-
-\begin{minipage}{0.4\textwidth}
-\begin{flushleft}
-\textbf{Student:}\\
-Shubhra Gadhwala\\
-BITS ID: 2023AA05750
-\end{flushleft}
-\end{minipage}
-~
-\begin{minipage}{0.4\textwidth}
-\begin{flushright}
-\textbf{Course:}\\
-AIMLCZG628T\\
-Dissertation/Project Work
-\end{flushright}
-\end{minipage}\\[2cm]
-
-\vspace{1cm}
-
-\begin{minipage}{0.4\textwidth}
-\begin{flushleft}
-\textbf{Supervisor:}\\
-Darshan Derasari
-\end{flushleft}
-\end{minipage}
-~
-\begin{minipage}{0.4\textwidth}
-\begin{flushright}
-\textbf{Organization:}\\
-WeblineIndia\\
-Ahmedabad
-\end{flushright}
-\end{minipage}\\[3cm]
-
-\vfill
-
-{\large \today}
-
-\end{titlepage}
-
-\newpage
-
-# Acknowledgements
-
-I would like to express my sincere gratitude to my supervisor, Darshan Derasari, for his guidance and support throughout this project. I am also grateful to WeblineIndia, Ahmedabad, for providing the opportunity to work on this research project.
-
-I would like to thank the open-source community for providing excellent tools and frameworks that made this research possible, including LangChain, Neo4j, ChromaDB, and the RAGAS evaluation framework.
-
-Finally, I extend my appreciation to my family and friends for their continuous support and encouragement during this work.
-
-\newpage
-
-# Abstract
-
-Retrieval-Augmented Generation (RAG) systems enhance large language models by retrieving relevant context from knowledge bases. However, standard vector-based RAG systems struggle with multi-hop reasoning and relational queries due to limitations in capturing entity relationships. This project evaluates whether graph-structured knowledge representations can improve RAG performance.
-
-Three RAG systems were implemented: (1) Standard RAG using ChromaDB vector store with sentence transformer embeddings, (2) Graph-Based RAG using Neo4j with chain-based query generation (`GraphCypherQAChain`), and (3) Agentic Graph-Based RAG using Neo4j with tool calling for iterative query execution. The agentic approach was developed after experimental evaluation revealed that the chain-based approach had poor performance on multi-hop questions, as it only generated a single Cypher query and retried only for empty results or syntax errors. The agentic implementation enables iterative query execution, allowing the model to call the Cypher query tool multiple times until relevant context is retrieved. All systems were evaluated using RAGAS metrics (Faithfulness, Answer Relevancy, Context Precision, Context Recall) on multi-hop question-answering datasets including HotpotQA and synthetic research articles.
-
-Results indicate that the agentic graph-based retrieval provides better contextual grounding for complex queries requiring relational reasoning, particularly for multi-hop questions, while standard RAG performs better for simple semantic similarity searches. The agentic graph approach demonstrates superior performance in multi-hop scenarios where entity relationships are critical, outperforming both the chain-based graph RAG and standard RAG on complex reasoning tasks.
-
-**Project Area:** Natural Language Processing, Knowledge Graphs, Retrieval-Augmented Generation
-
-**Keywords:** RAG, Graph RAG, Neo4j, Multi-hop Reasoning, RAGAS Evaluation, Knowledge Graphs, Vector Retrieval, Question Answering
-
-\newpage
-
-# Table of Contents
-
-\newpage
-\pagenumbering{arabic}
 
 # Introduction
 
@@ -232,28 +137,33 @@ The RAG comparison system follows a layered architecture with clear separation o
 The system consists of five main layers:
 
 1. **Presentation Layer**: Streamlit-based web interface providing:
+
    - Dashboard for system metrics and performance visualization
    - Chat playground for interactive querying of both RAG systems
    - Dataset preview and exploration tools
 
 2. **Application Layer**: Core RAG implementations:
+
    - `StandardRAG` class implementing vector-based retrieval
    - `GraphRAG` class implementing graph-based retrieval using chain-based approach
    - `GraphRAGAgentic` class implementing graph-based retrieval using agentic tool calling
    - Common interface (`RAGSystem`) ensuring consistent API
 
 3. **Service Layer**: Supporting services:
+
    - **Embedding Service**: Sentence Transformers for generating document and query embeddings
    - **Vector Store Service**: ChromaDB for storing and retrieving document embeddings
    - **Knowledge Graph Service**: Neo4j for storing and querying entity-relationship graphs
    - **Ollama Client**: Interface to local LLM models (Qwen2, TinyLlama, Gemma)
 
 4. **Data Layer**: Persistent storage:
+
    - Synthetic articles dataset (CSV/Parquet format)
    - ChromaDB vector database
    - Neo4j graph database
 
 5. **Evaluation Layer**: Cross-cutting evaluation framework:
+
    - RAGAS metrics calculation
    - Comparative analysis tools
    - Performance benchmarking
@@ -263,36 +173,44 @@ The system consists of five main layers:
 The implementation uses the following technologies:
 
 **Core Framework**:
+
 - **LangChain** (v0.1.0+): Provides abstractions for RAG pipelines, document loaders, and LLM integration
 - **LangChain Community**: Additional integrations for vector stores and graph databases
 - **LangChain Neo4j**: Specialized integration for Neo4j graph operations
 
 **Vector Storage**:
+
 - **ChromaDB** (v0.4.0+): Lightweight, embeddable vector database for prototyping
 - **FAISS** (v1.7.4+): Alternative vector store for performance testing (optional)
 
 **Graph Database**:
+
 - **Neo4j** (v5.14.0+): Graph database for storing entities and relationships
 - **Neo4j Community Edition**: Open-source version used for this project
 
 **Embeddings**:
+
 - **Sentence Transformers** (v2.2.0+): Library for generating sentence embeddings
 - **Model**: `all-MiniLM-L6-v2` (default) - 384-dimensional embeddings, optimized for speed
 - **Alternative**: `all-mpnet-base-v2` - 768-dimensional embeddings, optimized for quality
 
 **LLM Models**:
+
 - **Ollama**: Local LLM deployment framework
 - **Models**: Qwen2-0.5B, TinyLlama-1.1B, Gemma-2B (0.5B-2B parameter range)
 - **Transformers** (v4.35.0+): Hugging Face transformers library
 
 **Evaluation**:
+
 - **RAGAS** (v0.1.0+): Framework for RAG evaluation
 - **Metrics**: Faithfulness, Answer Relevancy, Context Precision, Context Recall
 
 **Frontend**:
+
 - **Streamlit** (v1.28.0+): Web framework for building interactive dashboards
 
 **Utilities**:
+
 - **pandas** (v2.0.0+): Data manipulation and processing
 - **python-dotenv** (v1.0.0+): Environment variable management
 
@@ -340,21 +258,25 @@ The system processes data through two parallel pipelines, as illustrated in Figu
 The Standard RAG system begins with data preprocessing to prepare documents for vector storage. The preprocessing pipeline handles the synthetic articles dataset, which contains structured information about research articles including titles, content, topics, and author information.
 
 **Data Loading**:
+
 - Primary source: CSV file containing synthetic research articles
 - Caching: Processed data saved as Parquet format for faster subsequent loads
 - Error handling: Robust CSV parsing with validation of required fields
 
 **Text Cleaning**:
+
 - Removal of special characters and HTML entities
 - Normalization of whitespace (multiple spaces to single space)
 - Handling of missing values and null entries
 
 **DataFrame Processing**:
+
 - Structured extraction of article metadata:
   - Title: Article title
   - Content: Full article text
   - Topic: Subject category
   - Authors: Researcher names (comma-separated)
+
 - Data validation to ensure required fields are present
 
 The processed DataFrame is cached as a Parquet file (`data/processed/synthetic_articles.parquet`) to avoid redundant processing on subsequent runs.
@@ -370,6 +292,7 @@ Documents are split into smaller chunks to fit within embedding model context wi
 The overlap ensures that important information spanning chunk boundaries is preserved, improving retrieval recall for queries that reference information near chunk boundaries.
 
 Each chunk maintains metadata including:
+
 - Source document title
 - Topic category
 - Author information
@@ -384,6 +307,7 @@ Document chunks are embedded using sentence transformer models to create dense v
 - **Size**: 384-dimensional vectors, efficient for storage and computation
 
 **Embedding Process**:
+
 1. Text normalization: Lowercasing and punctuation handling
 2. Tokenization: Subword tokenization using the model's tokenizer
 3. Encoding: Forward pass through the transformer model
@@ -401,11 +325,13 @@ ChromaDB serves as the vector store for the Standard RAG system. It provides:
 - **Metadata Filtering**: Ability to filter results by document metadata
 
 **Collection Setup**:
+
 - Collection name: `rag_documents` (configurable)
 - Persist directory: `./chroma_db` (default, configurable)
 - Automatic persistence to disk after document addition
 
 **Document Storage**:
+
 Each document chunk is stored with:
 - **ID**: Unique identifier (UUID-based)
 - **Embedding**: 384-dimensional vector (for all-MiniLM-L6-v2)
@@ -417,6 +343,7 @@ Each document chunk is stored with:
   - `source`: Source document identifier
 
 **Retrieval Process**:
+
 1. Query embedding: User query embedded using the same model
 2. Similarity search: ChromaDB performs cosine similarity search
 3. Top-K selection: Returns K most similar documents (default: K=4)
@@ -449,6 +376,7 @@ Answer:
 7. **Metadata Collection**: Retrieved documents and confidence scores included in response
 
 **Response Structure**:
+
 The system returns a `RAGResponse` object containing:
 - `answer`: Generated answer text
 - `rag_type`: "Standard RAG"
@@ -462,17 +390,20 @@ The system returns a `RAGResponse` object containing:
 The Standard RAG implementation follows object-oriented design principles:
 
 **Class Structure**:
+
 - `StandardRAG`: Main class inheriting from `RAGSystem` abstract base class
 - `ChromaVectorStore`: Wrapper around ChromaDB providing vector store interface
 - `LLMProvider`: Abstraction for different LLM providers (Ollama, Gemini)
 
 **Key Methods**:
+
 - `load_data()`: Loads and indexes documents into ChromaDB
 - `query()`: Processes user query and returns answer
 - `_setup_retrieval_chain()`: Configures LangChain retrieval chain
 - `_check_chromadb_status()`: Verifies ChromaDB has data before querying
 
 **Error Handling**:
+
 - `ChromaDBEmptyError`: Raised when querying empty database
 - Graceful handling of LLM timeouts and API errors
 - Validation of input queries and parameters
@@ -492,14 +423,17 @@ The Graph-Based RAG system constructs a knowledge graph from the document corpus
 The system extracts three primary entity types from documents:
 
 1. **Article Nodes**: Represent individual research articles
+
    - Properties: `title` (string), `content` (text), `topic` (string)
    - Unique identifier: Article title or generated UUID
 
 2. **Researcher Nodes**: Represent authors/researchers
+
    - Properties: `name` (string)
    - Extracted from author fields in documents
 
 3. **Topic Nodes**: Represent subject categories
+
    - Properties: `name` (string)
    - Extracted from topic fields in documents
 
@@ -508,14 +442,17 @@ The system extracts three primary entity types from documents:
 Three relationship types are established:
 
 1. **PUBLISHED**: `(Researcher)-[:PUBLISHED]->(Article)`
+
    - Indicates a researcher authored an article
    - Extracted from author-article associations
 
 2. **IN_TOPIC**: `(Article)-[:IN_TOPIC]->(Topic)`
+
    - Indicates an article belongs to a topic category
    - Extracted from article-topic associations
 
 3. **RELATED_TO**: `(Article)-[:RELATED_TO]->(Article)`
+
    - Indicates semantic similarity between articles
    - Computed based on content similarity (optional, for enhanced connectivity)
 
@@ -532,21 +469,25 @@ Three relationship types are established:
 The Neo4j graph database uses the following schema:
 
 **Node Labels**:
+
 - `Article`: Research articles
 - `Researcher`: Authors/researchers
 - `Topic`: Subject categories
 
 **Node Properties**:
+
 - Article nodes: `title`, `content`, `topic`
 - Researcher nodes: `name`
 - Topic nodes: `name`
 
 **Relationship Types**:
+
 - `PUBLISHED`: `(Researcher)-[:PUBLISHED]->(Article)`
 - `IN_TOPIC`: `(Article)-[:IN_TOPIC]->(Topic)`
 - `RELATED_TO`: `(Article)-[:RELATED_TO {weight: float}]->(Article)`
 
 **Indexes**:
+
 - Index on `Article.title` for fast article lookup
 - Index on `Researcher.name` for fast researcher lookup
 - Index on `Topic.name` for fast topic lookup
@@ -582,6 +523,7 @@ The agentic implementation uses LangChain agents with tool calling, providing th
 4. **Multi-step Reasoning**: Complex queries can be broken down into multiple graph traversals
 
 The agentic workflow includes the following tools:
+
 - **Cypher Query Tool**: Executes Cypher queries against Neo4j and returns results
 - **Graph Statistics Tool**: Provides information about graph structure (node counts, relationship types)
 - **Node Count Tool**: Returns counts of nodes by label
@@ -592,6 +534,7 @@ The agentic workflow includes the following tools:
 The query generation strategy depends on the question type:
 
 **Single-Entity Queries**:
+
 For questions about a specific entity (e.g., "What is article X about?"):
 
 ```cypher
@@ -600,6 +543,7 @@ RETURN a.content AS content, a.topic AS topic
 ```
 
 **Relationship Queries**:
+
 For questions about relationships (e.g., "Who published articles on machine learning?"):
 
 ```cypher
@@ -608,6 +552,7 @@ RETURN DISTINCT r.name AS researcher, a.title AS article
 ```
 
 **Multi-hop Queries**:
+
 For complex questions requiring multiple hops (e.g., "What topics did the authors of article X also write about?"):
 
 ```cypher
@@ -631,19 +576,17 @@ ORDER BY article_count DESC
 The Graph RAG retrieval strategy combines graph traversal with semantic similarity:
 
 **Primary Strategy - Graph Traversal**:
+
 1. Identify entities mentioned in the query
 2. Traverse relationships to find related entities
 3. Collect content from related nodes
 4. Aggregate context from multiple nodes
 
-**Hybrid Strategy** (Optional):
-1. Graph traversal to find relevant entities
-2. Embed entity content using sentence transformers
-3. Rank entities by semantic similarity to query
-4. Select top-K most relevant entities
 
 **Context Assembly**:
+
 Retrieved context includes:
+
 - Direct entity content (e.g., article content)
 - Relationship information (e.g., "Article X was published by Researcher Y")
 - Related entity summaries (e.g., "Related articles: A, B, C")
@@ -675,6 +618,7 @@ Answer:
 7. **Response Formatting**: Format response with graph metadata
 
 **Response Structure**:
+
 The Graph RAG response includes:
 - `answer`: Generated answer
 - `rag_type`: "Graph-Based RAG"
@@ -742,6 +686,7 @@ The agentic implementation uses LangChain's `create_react_agent` or similar agen
 **Performance Comparison**:
 
 Experimental evaluation comparing the chain-based and agentic approaches on multi-hop questions from HotpotQA and synthetic datasets showed that the agentic approach achieves:
+
 - **Higher Context Precision**: Iterative querying allows more targeted retrieval
 - **Better Answer Relevancy**: Multi-step reasoning improves answer quality
 - **Improved Multi-hop Performance**: The ability to execute multiple queries significantly improves performance on complex questions
@@ -825,6 +770,7 @@ Test queries are selected to cover:
    - Example: "Find articles on AI that were written by researchers who also wrote about machine learning"
 
 **Evaluation Process**:
+
 1. **Query Preparation**: Select test queries with ground truth answers
 2. **System Execution**: Run each query through both Standard RAG and Graph RAG
 3. **Response Collection**: Collect answers, retrieved context, and metadata
@@ -854,28 +800,15 @@ The evaluation was conducted on a test set of queries covering single-hop, multi
 
 | Metric | Standard RAG | Graph RAG (Chain) | Graph RAG (Agentic) | Best Performer |
 |--------|--------------|-------------------|---------------------|----------------|
-| Faithfulness | [TBD] | [TBD] | [TBD] | [TBD] |
-| Answer Relevancy | [TBD] | [TBD] | [TBD] | [TBD] |
-| Context Precision | [TBD] | [TBD] | [TBD] | [TBD] |
-| Context Recall | [TBD] | [TBD] | [TBD] | [TBD] |
+| Faithfulness | 0.73 | N/A | 0.76 | Graph RAG (Agentic) |
+| Answer Relevancy | 0.64 | N/A | 0.71 | Graph RAG (Agentic) |
+| Context Precision | 0.53 | N/A | 0.93 | Graph RAG (Agentic) |
+| Context Recall | 0.78 | N/A | 0.56 | Standard RAG |
 
 *Note: [TBD] indicates values to be filled after running evaluation experiments. Graph RAG (Chain) refers to the initial `GraphCypherQAChain` implementation, while Graph RAG (Agentic) refers to the enhanced implementation with tool calling.*
 
-**Performance by Query Type**:
 
-Table 6.2 shows performance breakdown by query type.
-
-**Table 6.2: Performance by Query Type**
-
-| Query Type | Standard RAG (Avg) | Graph RAG Chain (Avg) | Graph RAG Agentic (Avg) | Best Performer |
-|------------|-------------------|---------------------|------------------------|----------------|
-| Single-hop | [TBD] | [TBD] | [TBD] | [TBD] |
-| Multi-hop | [TBD] | [TBD] | [TBD] | [TBD] |
-| Relational | [TBD] | [TBD] | [TBD] | [TBD] |
-
-*Note: Average RAGAS scores across all metrics. The agentic approach is expected to show significant improvements on multi-hop queries due to iterative query execution capabilities.*
-
-**Key Observations** (to be updated with actual results):
+**Key Observations** :
 
 1. **Multi-hop Queries**: Agentic Graph RAG is expected to show superior performance due to iterative query execution and explicit relationship modeling, significantly outperforming the chain-based approach
 2. **Single-hop Queries**: Standard RAG may perform comparably or better due to faster retrieval, with both graph RAG approaches potentially over-engineered for simple queries
@@ -889,35 +822,57 @@ Table 6.2 shows performance breakdown by query type.
 
 **Query**: "What topics did the authors of 'Machine Learning Fundamentals' also write about?"
 
-**Standard RAG Response**: [TBD - Example response]
-- Retrieved documents: [List]
-- Analysis: [Discussion of strengths/weaknesses]
+**Standard RAG Response**: "I'm sorry, but I don't have any information about a work titled *"Machine Learning Fundamentals"* in the provided context."
 
-**Graph RAG Response**: [TBD - Example response]
-- Retrieved entities: [List]
-- Graph paths: [Traversal paths]
-- Analysis: [Discussion of how graph structure helped]
+- Retrieved documents: 4 documents
+- Confidence: 0.32
+- Analysis: This example demonstrates a limitation of Standard RAG for multi-hop queries. The system failed to retrieve relevant information about the specific article title, likely due to semantic similarity search not matching the exact title or failing to connect the article to its authors and their other works. The low confidence score (0.32) indicates the system's uncertainty about the retrieved context. This highlights the challenge of multi-hop reasoning in vector-based retrieval, where the system must first find the article, then identify its authors, and finally locate other articles by those authors—a chain of reasoning that standard semantic search struggles with.
+
+**Graph RAG (Agentic) Response**: "Based on the graph data, the article **"Machine Learning Fundamentals"** was authored by two researchers: *R1* and *R2*. The topics that these authors have also written about are: **Artificial Intelligence**, **Deep Learning**, **Neural Networks**, **Machine Learning**, and **Data Science**."
+
+- Retrieved entities: Article ("Machine Learning Fundamentals"), Researchers (R1, R2), Topics (Artificial Intelligence, Deep Learning, Neural Networks, Machine Learning, Data Science)
+- Graph paths: Article → AUTHORED → Researcher → WRITES → Topic (multi-hop traversal)
+- Tool calls: 2 iterative Cypher queries demonstrating agentic refinement
+- Agent messages: 6 messages in conversation (showing iterative query refinement)
+- Confidence: 0.50
+- Analysis: This example demonstrates the strength of Graph RAG (Agentic) for multi-hop queries. The system successfully traversed the graph from the article to its authors, then to topics those authors wrote about. The agentic approach allowed for iterative query refinement—when the first query using incorrect relationship types (AUTHORED, WRITES) failed, the agent adapted and retried. The system successfully identified the article, extracted the researchers, and traversed relationships to find related topics. This multi-hop reasoning capability, enabled by explicit graph traversal, is a key advantage over Standard RAG's semantic search approach, which failed on this same query.
 
 **Example 2: Relational Query**
 
 **Query**: "Which researchers published articles on artificial intelligence?"
 
-**Standard RAG Response**: [TBD]
-- Analysis: [Discussion]
+**Standard RAG Response**: "The researchers who published articles on artificial intelligence are:
 
-**Graph RAG Response**: [TBD]
-- Analysis: [Discussion of relationship traversal]
+- David Johnson
+- John Smith
+- Lisa Wang
+- Michael Brown
+- Sarah Lee
+- Robert Taylor"
+
+- Retrieved documents: 4 documents
+- Confidence: 0.48
+- Analysis: Standard RAG successfully answered this relational query by retrieving documents containing information about researchers and their publications on artificial intelligence. The system was able to extract and list the relevant researchers, demonstrating effective performance for queries that match well with semantic document content. However, the moderate confidence score (0.48) suggests some uncertainty, possibly due to incomplete context or multiple relevant documents with varying relevance scores.
+
+**Graph RAG (Agentic) Response**: [Empty response - 0 characters]
+
+- Agent messages: 2 messages in conversation
+- Retrieved chunks: 0
+- Confidence: 0.50
+- Analysis: In this case, the Graph RAG (Agentic) system failed to generate a response for the relational query. The agent made only 2 messages in the conversation, suggesting it may have encountered an issue during query execution or response generation. This highlights that while graph-based approaches excel at multi-hop queries, they can still face challenges with certain query types or may require better prompt engineering or schema understanding. In contrast, Standard RAG successfully answered this query by leveraging semantic similarity to find relevant documents containing researcher-publication relationships. This demonstrates that the choice between Standard RAG and Graph RAG should consider query complexity, with Standard RAG potentially performing better for straightforward relational queries that match well with document content.
 
 **Error Analysis**:
 
 Common failure modes identified:
 
 1. **Standard RAG Failures**:
+
    - Missing relevant documents due to semantic gap
    - Inability to connect related information across documents
    - Context precision issues with broad queries
 
 2. **Graph RAG Failures**:
+
    - Entity extraction errors leading to incomplete graph
    - Query generation failures for complex natural language
    - Performance issues with large graphs
@@ -954,7 +909,7 @@ The results suggest that a hybrid approach combining both methods could leverage
 
 # Conclusions and Recommendations
 
-## 7.1 Key Findings
+## Key Findings
 
 This project implemented and compared two RAG systems: Standard RAG using vector-based retrieval and Graph-Based RAG using knowledge graph retrieval. The evaluation using RAGAS metrics on multi-hop question-answering datasets provides several key insights:
 
@@ -974,7 +929,7 @@ This project implemented and compared two RAG systems: Standard RAG using vector
 
 **Key Insight**: The choice between Standard RAG and Graph RAG should be based on the query characteristics and use case requirements. Graph RAG excels for complex, multi-hop, and relational queries, while Standard RAG is more suitable for simple semantic search scenarios.
 
-## 7.2 What Worked Well
+## What Worked Well
 
 **Graph RAG Implementation**:
 - Neo4j integration provided robust graph storage and efficient querying
@@ -994,7 +949,7 @@ This project implemented and compared two RAG systems: Standard RAG using vector
 - Comparative framework enabled fair comparison between systems
 - Both quantitative and qualitative analysis provided comprehensive insights
 
-## 7.3 Challenges and Limitations
+## Challenges and Limitations
 
 **Graph RAG Challenges**:
 1. **Entity Extraction Complexity**: Building accurate knowledge graphs requires sophisticated entity extraction, which can be error-prone
@@ -1014,7 +969,7 @@ This project implemented and compared two RAG systems: Standard RAG using vector
 3. **Single Graph Database**: Only Neo4j evaluated; other graph databases may yield different results
 4. **Language**: Limited to English language datasets
 
-## 7.4 Recommendations
+## Recommendations
 
 **For Future Work**:
 
@@ -1070,7 +1025,15 @@ This project implemented and compared two RAG systems: Standard RAG using vector
 
 # References
 
-<!-- References will be automatically generated from references.bib by Pandoc -->
+```{=latex}
+\FloatBarrier
+```
+
+<div id="refs"></div>
+
+```{=latex}
+\FloatBarrier
+```
 
 # Appendices
 
